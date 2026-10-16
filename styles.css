@@ -205,7 +205,7 @@ details.more summary{cursor:pointer;font-size:.85rem;color:var(--muted)}
 .savebar{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--surface);border-top:1px solid var(--line);padding-block:12px calc(12px + env(safe-area-inset-bottom,0px))}
 .savebar .wrap{display:flex;align-items:center;gap:10px}
 .savebar .st{flex:1;font-size:.88rem;color:var(--muted);min-width:0}
-.savebar .st.dirty{color:var(--royal-ink);font-weight:700}
+.savebar .st.dirty,.card .st.dirty{color:var(--royal-ink)!important;font-weight:700}
 .toast{position:fixed;left:50%;bottom:calc(100px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-weight:600;z-index:60;max-width:90vw;text-align:center}
 .ph .out{margin-left:auto}
 .upl{display:flex;align-items:center;gap:10px;flex-wrap:wrap}

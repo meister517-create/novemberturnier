@@ -268,13 +268,13 @@ function aPlan(D){
   function teamSel(m,side){var auto=m[side==="home"?"hsrc":"asrc"],cur=m[side]||"",r=resolve(m,side);
     var o=(auto?opt("","Automatisch: "+(r?r.name:m[side==="home"?"hn":"an"]),cur):"")+D.teams.filter(function(t){return t.group.indexOf(m.cat)===0}).map(function(t){return opt(t.id,t.name,cur)}).join("");
     return '<select class="in" id="'+side+'-'+m.id+'" data-k="m.'+side+'" data-id="'+m.id+'" aria-label="'+(side==="home"?"Team 1":"Team 2")+'">'+o+'</select>'}
-  return '<p class="hint">Tore eintragen und unten auf „Veröffentlichen“ tippen. Leere Felder heißen: noch nicht gespielt. Halbfinals und Platzierungsspiele füllen sich automatisch, sobald die Gruppen fertig sind.</p>'+chips+
+  return '<p class="hint">Tore eintragen und beim Spiel auf „Speichern“ tippen – das Ergebnis ist sofort online. „Leeren“ entfernt ein Ergebnis wieder. Leere Felder heißen: noch nicht gespielt. Halbfinals und Platzierungsspiele füllen sich automatisch, sobald die Gruppen fertig sind.</p>'+chips+
    (ms.length?'<div class="rows">'+ms.map(function(m){var sc=hasScore(m),ko=isKO(m);
     return '<div class="card'+(sc?" done":"")+'"><div class="mhead"><span class="code">'+esc(m.id)+'</span><b>'+esc(fmtDay(mday(m),{weekday:"short"}))+' '+esc(m.time)+'</b><span>'+esc(hall(m))+'</span><span>'+esc(m.cat)+' · '+esc(m.group?shortG(m.group):m.round)+'</span></div>'+
      '<div class="mrow">'+(m.hsrc?teamSel(m,"home"):'<span class="tn">'+esc(sideName(m,"home"))+'</span>')+'<input class="in score-in" id="hs-'+m.id+'" inputmode="numeric" data-k="m.hs" data-id="'+m.id+'" value="'+(num(m.hs)?m.hs:"")+'" aria-label="Tore Team 1">'+
      '<span class="vsl">gegen</span>'+(m.asrc?teamSel(m,"away"):'<span class="tn">'+esc(sideName(m,"away"))+'</span>')+'<input class="in score-in" id="as-'+m.id+'" inputmode="numeric" data-k="m.as" data-id="'+m.id+'" value="'+(num(m.as)?m.as:"")+'" aria-label="Tore Team 2"></div>'+
      (ko?'<div class="so-row"><span>Bei Unentschieden: 7-m-Schießen</span><input class="in score-in" id="hp-'+m.id+'" inputmode="numeric" data-k="m.hp" data-id="'+m.id+'" value="'+(num(m.hp)?m.hp:"")+'" aria-label="7 m Team 1"><input class="in score-in" id="ap-'+m.id+'" inputmode="numeric" data-k="m.ap" data-id="'+m.id+'" value="'+(num(m.ap)?m.ap:"")+'" aria-label="7 m Team 2"></div>':'')+
-     '<details class="more"><summary>Zeit und Halle ändern</summary><div class="mgrid"><input class="in" type="date" id="d-'+m.id+'" data-k="m.day" data-id="'+m.id+'" value="'+esc(mday(m))+'" aria-label="Tag"><input class="in" type="time" id="t-'+m.id+'" data-k="m.time" data-id="'+m.id+'" value="'+esc(m.time)+'" aria-label="Uhrzeit"><select class="in" id="p-'+m.id+'" data-k="m.pitch" data-id="'+m.id+'" aria-label="Halle">'+opt("Ost","Halle Ost",m.pitch)+opt("West","Halle West",m.pitch)+'</select></div></details></div>'}).join("")+'</div>'
+     '<details class="more"><summary>Zeit und Halle ändern</summary><div class="mgrid"><input class="in" type="date" id="d-'+m.id+'" data-k="m.day" data-id="'+m.id+'" value="'+esc(mday(m))+'" aria-label="Tag"><input class="in" type="time" id="t-'+m.id+'" data-k="m.time" data-id="'+m.id+'" value="'+esc(m.time)+'" aria-label="Uhrzeit"><select class="in" id="p-'+m.id+'" data-k="m.pitch" data-id="'+m.id+'" aria-label="Halle">'+opt("Ost","Halle Ost",m.pitch)+opt("West","Halle West",m.pitch)+'</select></div></details>'+saveRow(m)+'</div>'}).join("")+'</div>'
     :'<div class="empty">'+(afilter==="Offen"?"Alle Spiele haben ein Ergebnis.":"Keine Spiele in dieser Auswahl.")+'</div>');
 }
 function mvBtns(upAct,downAct,id,first,last,extra){return (first?'':'<button class="btn icon sm" data-act="'+upAct+'" data-id="'+id+'"'+(extra||'')+' aria-label="Nach oben">↑</button>')+(last?'':'<button class="btn icon sm" data-act="'+downAct+'" data-id="'+id+'"'+(extra||'')+' aria-label="Nach unten">↓</button>')}
@@ -360,7 +360,8 @@ app.addEventListener("input",function(e){
   if(k==="team.name")DRAFT.teams.find(function(t){return t.id===id}).name=v;
   else if(k.indexOf("m.")===0){var m=findM(id),f=k.slice(2);
     if(f==="hs"||f==="as"||f==="hp"||f==="ap"){var n=parseNum(v);m[f]=n===null?null:Math.max(0,Math.round(n))}else m[f]=v;
-    if(f==="home"||f==="away"||f==="pitch"){markDirty();render(true);return}}
+    if(f==="home"||f==="away"||f==="pitch"){markDirty();render(true);return}
+    updRes(id)}
   else if(k.indexOf("it.")===0){var c=findC(el.dataset.cid),it=c.items.find(function(i){return i.id===id}),g=k.slice(3);
     if(g==="price"){var p=parseNum(v);it.price=p===null?0:p}else it[g]=v}
   else if(k==="cat.name")findC(id).name=v;
@@ -407,6 +408,42 @@ app.addEventListener("change",async function(e){
   catch(err){toast("Bitte eine PNG- oder JPG-Datei wählen.")}
 });
 
+/* ---------- Ergebnis je Spiel sofort speichern ---------- */
+var SAVING={};
+var RES=["hs","as","hp","ap","home","away"];
+function resKey(m){return m?RES.map(function(f){return m[f]==null?"":m[f]}).join("|"):""}
+function resState(m){var o=STATE&&STATE.matches.find(function(x){return x.id===m.id});
+  if(SAVING[m.id])return["Wird gespeichert …",""];
+  if(resKey(o)!==resKey(m))return["Nicht gespeichert","dirty"];
+  return hasScore(m)?["Gespeichert und online",""]:["Noch kein Ergebnis",""]}
+function saveRow(m){var st=resState(m);
+  return '<div class="row" style="margin-top:10px"><span class="grow st'+(st[1]?" "+st[1]:"")+'" id="ms-'+m.id+'" style="font-size:.85rem;color:var(--muted)">'+esc(st[0])+'</span>'+
+    armBtn("clearM",m.id,"Leeren","Wirklich leeren?","ghost sm")+'<button class="btn blue sm" data-act="saveM" data-id="'+m.id+'"'+(SAVING[m.id]?" disabled":"")+'>Speichern</button></div>'}
+function updRes(id){var m=findM(id),el=document.getElementById("ms-"+id);if(!m||!el)return;var st=resState(m);el.textContent=st[0];el.className="grow st"+(st[1]?" "+st[1]:"")}
+async function saveMatch(id,clear){
+  if(!FB){toast("Firebase ist noch nicht eingerichtet (firebase-config.js).");return}
+  var m=findM(id);if(!m||SAVING[id])return;
+  if(clear){["hs","as","hp","ap"].forEach(function(f){m[f]=null})}
+  else if(num(m.hs)!==num(m.as)){toast("Bitte beide Tore eintragen (0 ist erlaubt).");return}
+  var vals={};RES.forEach(function(f){vals[f]=m[f]==null?null:m[f]});
+  SAVING[id]=true;render(true);
+  try{
+    var saved=await runTransaction(FB.db,async function(tx){
+      var snap=await tx.get(FB.ref);
+      var cur=snap.exists()?norm(JSON.parse(snap.data().json)):clone(STATE);
+      var rm=cur.matches.find(function(x){return x.id===id});
+      if(!rm){var e=new Error("missing");e.code="missing";throw e}
+      RES.forEach(function(f){rm[f]=vals[f]});
+      cur.updated=new Date().toISOString();
+      tx.set(FB.ref,{json:JSON.stringify(cur),updated:cur.updated});
+      return cur});
+    STATE=norm(saved);
+    /* übrige, noch nicht veröffentlichte Änderungen im Entwurf behalten */
+    var dm=findM(id);RES.forEach(function(f){dm[f]=vals[f]});
+    saveDraft();clearCache();toast(clear?"Ergebnis geleert und online":"Ergebnis gespeichert und online");
+  }catch(err){var c=err&&err.code;
+    toast(c==="permission-denied"?"Keine Schreibrechte. Ist deine UID in den Firestore-Regeln eingetragen?":c==="missing"?"Dieses Spiel gibt es online nicht. Bitte zuerst den Spielplan veröffentlichen.":"Speichern fehlgeschlagen. Bitte Internetverbindung prüfen.")}
+  delete SAVING[id];markDirty();render(true)}
 /* ---------- Veröffentlichen (Firestore) ---------- */
 async function publish(){
   if(publishing)return;
@@ -442,6 +479,8 @@ app.addEventListener("click",function(e){
   var a=t.dataset.act,id=t.dataset.id;
   if(a==="logout"){if(FB)signOut(FB.auth);DRAFT=null;go("home");return}
   if(a==="publish"){publish();return}
+  if(a==="saveM"){saveMatch(id,false);return}
+  if(a==="clearM"){if(!arm("clearM:"+id))return;saveMatch(id,true);return}
   if(a==="loadPlan"){if(!arm("loadPlan:"))return;loadPlan();return}
   if(a==="reset"){if(!arm("reset:"))return;DRAFT=clone(STATE);saveDraft();render(true);toast("Änderungen verworfen");return}
   if(a==="delLogo"){DRAFT.teams.find(function(x){return x.id===id}).logo=""}
@@ -468,8 +507,13 @@ if(res&&Date.now()-res.t<90e3){route=res.route||"home";atab=res.atab||atab;afilt
 render(false);
 
 function applyRemote(s){
-  var dirty=isDirty();STATE=norm(s);
-  if(route==="admin"&&DRAFT){if(dirty){toast("Es gibt eine neuere Version online. Vor dem Veröffentlichen bitte „Verwerfen“.");return}DRAFT=clone(STATE)}
+  var dirty=isDirty(),prev=STATE;STATE=norm(s);
+  if(route==="admin"&&DRAFT){
+    if(dirty){var pm={};(prev?prev.matches:[]).forEach(function(x){pm[x.id]=x});
+      STATE.matches.forEach(function(rm){var dm=DRAFT.matches.find(function(x){return x.id===rm.id});
+        if(dm&&!SAVING[rm.id]&&resKey(dm)===resKey(pm[rm.id]))RES.forEach(function(f){dm[f]=rm[f]})});
+      saveDraft();clearCache()}
+    else DRAFT=clone(STATE)}
   render(true);
 }
 fetch("default-state.json",{cache:"no-cache"}).then(function(r){return r.json()}).then(function(def){if(!STATE){STATE=norm(def);render(false)}})
