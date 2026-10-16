@@ -4,7 +4,18 @@
   "place": "Dortmund",
   "day": "2026-11-07",
   "durD": 25,
-  "durH": 20
+  "durH": 20,
+  "pause": 5,
+  "starts": {
+   "2026-11-07": {
+    "Ost": "09:30",
+    "West": "09:30"
+   },
+   "2026-11-08": {
+    "Ost": "10:00",
+    "West": "10:00"
+   }
+  }
  },
  "teams": [
   {
@@ -485,7 +496,7 @@
    "id": "D21",
    "cat": "Damen",
    "day": "2026-11-08",
-   "time": "09:00",
+   "time": "10:00",
    "pitch": "Ost",
    "group": "",
    "round": "Platzierungsrunde",
@@ -512,7 +523,7 @@
    "id": "D22",
    "cat": "Damen",
    "day": "2026-11-08",
-   "time": "09:30",
+   "time": "10:30",
    "pitch": "Ost",
    "group": "",
    "round": "Platzierungsrunde",
@@ -539,7 +550,7 @@
    "id": "D23",
    "cat": "Damen",
    "day": "2026-11-08",
-   "time": "10:00",
+   "time": "11:00",
    "pitch": "Ost",
    "group": "",
    "round": "Platzierungsrunde",
@@ -566,7 +577,7 @@
    "id": "D24",
    "cat": "Damen",
    "day": "2026-11-08",
-   "time": "10:30",
+   "time": "11:30",
    "pitch": "Ost",
    "group": "",
    "round": "2. Halbfinale",
@@ -593,7 +604,7 @@
    "id": "D25",
    "cat": "Damen",
    "day": "2026-11-08",
-   "time": "11:00",
+   "time": "12:00",
    "pitch": "Ost",
    "group": "",
    "round": "1. Halbfinale",
@@ -620,7 +631,7 @@
    "id": "D26",
    "cat": "Damen",
    "day": "2026-11-08",
-   "time": "11:30",
+   "time": "12:30",
    "pitch": "Ost",
    "group": "",
    "round": "Platzierungsrunde",
@@ -647,7 +658,7 @@
    "id": "D27",
    "cat": "Damen",
    "day": "2026-11-08",
-   "time": "12:00",
+   "time": "13:00",
    "pitch": "Ost",
    "group": "",
    "round": "Platzierungsrunde",
@@ -674,7 +685,7 @@
    "id": "D28",
    "cat": "Damen",
    "day": "2026-11-08",
-   "time": "12:30",
+   "time": "13:30",
    "pitch": "Ost",
    "group": "",
    "round": "Platzierungsrunde",
@@ -701,7 +712,7 @@
    "id": "D29",
    "cat": "Damen",
    "day": "2026-11-08",
-   "time": "14:15",
+   "time": "14:25",
    "pitch": "West",
    "group": "",
    "round": "Spiel um Platz 3",
@@ -726,7 +737,7 @@
    "id": "D30",
    "cat": "Damen",
    "day": "2026-11-08",
-   "time": "15:10",
+   "time": "15:20",
    "pitch": "West",
    "group": "",
    "round": "Finale",
@@ -1159,7 +1170,7 @@
    "id": "H25",
    "cat": "Herren",
    "day": "2026-11-08",
-   "time": "09:00",
+   "time": "10:00",
    "pitch": "West",
    "group": "Herren A",
    "round": "",
@@ -1176,7 +1187,7 @@
    "id": "H26",
    "cat": "Herren",
    "day": "2026-11-08",
-   "time": "09:25",
+   "time": "10:25",
    "pitch": "West",
    "group": "Herren A",
    "round": "",
@@ -1193,7 +1204,7 @@
    "id": "H27",
    "cat": "Herren",
    "day": "2026-11-08",
-   "time": "09:50",
+   "time": "10:50",
    "pitch": "West",
    "group": "Herren B",
    "round": "",
@@ -1210,7 +1221,7 @@
    "id": "H28",
    "cat": "Herren",
    "day": "2026-11-08",
-   "time": "10:15",
+   "time": "11:15",
    "pitch": "West",
    "group": "Herren A",
    "round": "",
@@ -1227,7 +1238,7 @@
    "id": "H29",
    "cat": "Herren",
    "day": "2026-11-08",
-   "time": "10:40",
+   "time": "11:40",
    "pitch": "West",
    "group": "Herren B",
    "round": "",
@@ -1244,7 +1255,7 @@
    "id": "H30",
    "cat": "Herren",
    "day": "2026-11-08",
-   "time": "11:05",
+   "time": "12:05",
    "pitch": "West",
    "group": "Herren B",
    "round": "",
@@ -1261,24 +1272,24 @@
    "id": "H31",
    "cat": "Herren",
    "day": "2026-11-08",
-   "time": "11:45",
+   "time": "12:45",
    "pitch": "West",
    "group": "",
-   "round": "Platzierungsrunde",
+   "round": "Spiel um Platz 11",
    "home": "",
    "away": "",
    "hsrc": {
     "k": "g",
-    "g": "Herren B",
-    "p": 3
+    "g": "Herren A",
+    "p": 6
    },
    "asrc": {
     "k": "g",
-    "g": "Herren A",
-    "p": 4
+    "g": "Herren B",
+    "p": 6
    },
-   "hn": "3. Herren B",
-   "an": "4. Herren A",
+   "hn": "6. Herren A",
+   "an": "6. Herren B",
    "hs": null,
    "as": null,
    "hp": null,
@@ -1288,24 +1299,24 @@
    "id": "H32",
    "cat": "Herren",
    "day": "2026-11-08",
-   "time": "12:10",
+   "time": "13:10",
    "pitch": "West",
    "group": "",
-   "round": "Platzierungsrunde",
+   "round": "Spiel um Platz 9",
    "home": "",
    "away": "",
    "hsrc": {
     "k": "g",
-    "g": "Herren B",
-    "p": 4
+    "g": "Herren A",
+    "p": 5
    },
    "asrc": {
     "k": "g",
-    "g": "Herren A",
-    "p": 3
+    "g": "Herren B",
+    "p": 5
    },
-   "hn": "4. Herren B",
-   "an": "3. Herren A",
+   "hn": "5. Herren A",
+   "an": "5. Herren B",
    "hs": null,
    "as": null,
    "hp": null,
@@ -1315,24 +1326,24 @@
    "id": "H33",
    "cat": "Herren",
    "day": "2026-11-08",
-   "time": "12:35",
+   "time": "13:35",
    "pitch": "West",
    "group": "",
-   "round": "Platzierungsrunde",
+   "round": "Spiel um Platz 7",
    "home": "",
    "away": "",
    "hsrc": {
     "k": "g",
-    "g": "Herren B",
-    "p": 5
+    "g": "Herren A",
+    "p": 4
    },
    "asrc": {
     "k": "g",
-    "g": "Herren A",
-    "p": 6
+    "g": "Herren B",
+    "p": 4
    },
-   "hn": "5. Herren B",
-   "an": "6. Herren A",
+   "hn": "4. Herren A",
+   "an": "4. Herren B",
    "hs": null,
    "as": null,
    "hp": null,
@@ -1342,24 +1353,24 @@
    "id": "H34",
    "cat": "Herren",
    "day": "2026-11-08",
-   "time": "13:00",
+   "time": "14:00",
    "pitch": "West",
    "group": "",
-   "round": "Platzierungsrunde",
+   "round": "Spiel um Platz 5",
    "home": "",
    "away": "",
    "hsrc": {
     "k": "g",
-    "g": "Herren B",
-    "p": 6
+    "g": "Herren A",
+    "p": 3
    },
    "asrc": {
     "k": "g",
-    "g": "Herren A",
-    "p": 5
+    "g": "Herren B",
+    "p": 3
    },
-   "hn": "6. Herren B",
-   "an": "5. Herren A",
+   "hn": "3. Herren A",
+   "an": "3. Herren B",
    "hs": null,
    "as": null,
    "hp": null,
@@ -1369,24 +1380,24 @@
    "id": "H35",
    "cat": "Herren",
    "day": "2026-11-08",
-   "time": "13:00",
-   "pitch": "Ost",
+   "time": "14:55",
+   "pitch": "West",
    "group": "",
-   "round": "Platzierungsrunde",
+   "round": "Spiel um Platz 3",
    "home": "",
    "away": "",
    "hsrc": {
     "k": "g",
-    "g": "Herren B",
-    "p": 3
+    "g": "Herren A",
+    "p": 2
    },
    "asrc": {
     "k": "g",
-    "g": "Herren A",
-    "p": 3
+    "g": "Herren B",
+    "p": 2
    },
-   "hn": "3. Herren B",
-   "an": "3. Herren A",
+   "hn": "2. Herren A",
+   "an": "2. Herren B",
    "hs": null,
    "as": null,
    "hp": null,
@@ -1396,182 +1407,24 @@
    "id": "H36",
    "cat": "Herren",
    "day": "2026-11-08",
-   "time": "13:25",
-   "pitch": "West",
-   "group": "",
-   "round": "2. Halbfinale",
-   "home": "",
-   "away": "",
-   "hsrc": {
-    "k": "g",
-    "g": "Herren B",
-    "p": 1
-   },
-   "asrc": {
-    "k": "g",
-    "g": "Herren A",
-    "p": 2
-   },
-   "hn": "1. Herren B",
-   "an": "2. Herren A",
-   "hs": null,
-   "as": null,
-   "hp": null,
-   "ap": null
-  },
-  {
-   "id": "H37",
-   "cat": "Herren",
-   "day": "2026-11-08",
-   "time": "13:25",
-   "pitch": "Ost",
-   "group": "",
-   "round": "Platzierungsrunde",
-   "home": "",
-   "away": "",
-   "hsrc": {
-    "k": "g",
-    "g": "Herren B",
-    "p": 4
-   },
-   "asrc": {
-    "k": "g",
-    "g": "Herren A",
-    "p": 4
-   },
-   "hn": "4. Herren B",
-   "an": "4. Herren A",
-   "hs": null,
-   "as": null,
-   "hp": null,
-   "ap": null
-  },
-  {
-   "id": "H38",
-   "cat": "Herren",
-   "day": "2026-11-08",
-   "time": "13:50",
-   "pitch": "West",
-   "group": "",
-   "round": "1. Halbfinale",
-   "home": "",
-   "away": "",
-   "hsrc": {
-    "k": "g",
-    "g": "Herren B",
-    "p": 2
-   },
-   "asrc": {
-    "k": "g",
-    "g": "Herren A",
-    "p": 1
-   },
-   "hn": "2. Herren B",
-   "an": "1. Herren A",
-   "hs": null,
-   "as": null,
-   "hp": null,
-   "ap": null
-  },
-  {
-   "id": "H39",
-   "cat": "Herren",
-   "day": "2026-11-08",
-   "time": "13:50",
-   "pitch": "Ost",
-   "group": "",
-   "round": "Platzierungsrunde",
-   "home": "",
-   "away": "",
-   "hsrc": {
-    "k": "g",
-    "g": "Herren B",
-    "p": 5
-   },
-   "asrc": {
-    "k": "g",
-    "g": "Herren A",
-    "p": 5
-   },
-   "hn": "5. Herren B",
-   "an": "5. Herren A",
-   "hs": null,
-   "as": null,
-   "hp": null,
-   "ap": null
-  },
-  {
-   "id": "H40",
-   "cat": "Herren",
-   "day": "2026-11-08",
-   "time": "14:15",
-   "pitch": "Ost",
-   "group": "",
-   "round": "Platzierungsrunde",
-   "home": "",
-   "away": "",
-   "hsrc": {
-    "k": "g",
-    "g": "Herren B",
-    "p": 6
-   },
-   "asrc": {
-    "k": "g",
-    "g": "Herren A",
-    "p": 6
-   },
-   "hn": "6. Herren B",
-   "an": "6. Herren A",
-   "hs": null,
-   "as": null,
-   "hp": null,
-   "ap": null
-  },
-  {
-   "id": "H41",
-   "cat": "Herren",
-   "day": "2026-11-08",
-   "time": "14:45",
-   "pitch": "West",
-   "group": "",
-   "round": "Spiel um Platz 3",
-   "home": "",
-   "away": "",
-   "hsrc": {
-    "k": "l",
-    "m": "H38"
-   },
-   "asrc": {
-    "k": "l",
-    "m": "H36"
-   },
-   "hn": "Verlierer 1. Halbfinale",
-   "an": "Verlierer 2. Halbfinale",
-   "hs": null,
-   "as": null,
-   "hp": null,
-   "ap": null
-  },
-  {
-   "id": "H42",
-   "cat": "Herren",
-   "day": "2026-11-08",
-   "time": "15:40",
+   "time": "15:50",
    "pitch": "West",
    "group": "",
    "round": "Finale",
    "home": "",
    "away": "",
    "hsrc": {
-    "k": "w",
-    "m": "H38"
+    "k": "g",
+    "g": "Herren A",
+    "p": 1
    },
    "asrc": {
-    "k": "w",
-    "m": "H36"
+    "k": "g",
+    "g": "Herren B",
+    "p": 1
    },
-   "hn": "Gewinner 1. Halbfinale",
-   "an": "Gewinner 2. Halbfinale",
+   "hn": "1. Herren A",
+   "an": "1. Herren B",
    "hs": null,
    "as": null,
    "hp": null,

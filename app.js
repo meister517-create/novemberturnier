@@ -36,6 +36,19 @@ function isKO(m){return !m.group&&m.round!=="Platzierungsrunde"}
 function mday(m){return m.day||S().settings.day||""}
 function sortedMatches(){return S().matches.slice().sort(function(a,b){return mday(a).localeCompare(mday(b))||(a.time||"").localeCompare(b.time||"")||String(a.pitch).localeCompare(String(b.pitch))})}
 function dur(m){var st=S().settings;return Math.max(1,+(m&&m.cat==="Herren"?st.durH:st.durD)||20)}
+/* ---------- Zeitplan: Starts je Tag und Halle, Spielzeit + Wechsel ---------- */
+function pause(){var v=+S().settings.pause;return isNaN(v)||v<0?5:v}
+function tmin(t){var p=String(t||"").split(":");return p.length<2?null:(+p[0])*60+(+p[1]||0)}
+function tfmt(n){n=((Math.round(n)%1440)+1440)%1440;return String(Math.floor(n/60)).padStart(2,"0")+":"+String(n%60).padStart(2,"0")}
+function slotGroups(st){var g={};st.matches.forEach(function(m){var d=m.day||st.settings.day||"",h=m.pitch||"";(g[d+"|"+h]=g[d+"|"+h]||{day:d,hall:h,ms:[]}).ms.push(m)});
+  return Object.keys(g).sort().map(function(k){var x=g[k];x.ms.sort(function(a,b){return (tmin(a.time)||0)-(tmin(b.time)||0)||String(a.id).localeCompare(String(b.id),"de",{numeric:true})});return x})}
+function startOf(st,day,hall,ms){var s=(st.settings.starts||{})[day];var v=s&&s[hall];if(tmin(v)!==null)return v;var f=ms&&ms[0]&&ms[0].time;return tmin(f)!==null?f:"09:00"}
+function durOf(st,m){return Math.max(1,+(m.cat==="Herren"?st.settings.durH:st.settings.durD)||20)}
+function reflow(st,old){old=old||st.settings;var p=+st.settings.pause,op=+old.pause;if(isNaN(p)||p<0)p=5;if(isNaN(op)||op<0)op=5;
+  var od=function(m){return Math.max(1,+(m.cat==="Herren"?old.durH:old.durD)||20)};
+  /* Pausen, die im Plan bewusst eingebaut sind (z. B. Mittag, vor Finals), bleiben erhalten */
+  slotGroups(st).forEach(function(g){var gaps=g.ms.map(function(m,i){if(!i)return 0;var pr=g.ms[i-1],x=tmin(m.time)-(tmin(pr.time)+od(pr)+op);return x>0?x:0});
+    var t=tmin(startOf(st,g.day,g.hall,g.ms));g.ms.forEach(function(m,i){t+=gaps[i];m.time=tfmt(t);t+=durOf(st,m)+p})})}
 function matchStart(m){var d=mday(m);if(!d||!m.time)return null;var p=d.split("-"),h=m.time.split(":");return new Date(+p[0],p[1]-1,+p[2],+h[0],+h[1]||0).getTime()}
 function liveInfo(m){if(hasScore(m))return null;var s=matchStart(m);if(s===null)return null;var n=Date.now(),D=dur(m)*60e3;if(n<s||n>=s+D)return null;return{min:Math.floor((n-s)/60e3)+1,p:(n-s)/D}}
 function liveMatches(){return sortedMatches().filter(function(m){return liveInfo(m)})}
@@ -112,14 +125,15 @@ function prTable(cat){
   var ranked=rank(list,played,function(r){return seed[r.t.id]||9});
   return (_pr[cat]={rows:ranked,missing:missing,done:ms.length>0&&ms.every(hasScore)&&!missing.length,count:ms.length,played:ms.filter(hasScore).length,n:slots.length});
 }
+function placeBase(m){if(m.round==="Finale")return 1;var x=/^Spiel um Platz (\d+)$/.exec(m.round||"");return x?+x[1]:0}
 function finalPlaces(cat){
-  var ms=S().matches.filter(function(m){return m.cat===cat});
-  var F=ms.find(function(m){return m.round==="Finale"}),P3=ms.find(function(m){return m.round==="Spiel um Platz 3"});
+  /* Finale = Plätze 1/2, "Spiel um Platz N" = Plätze N/N+1, danach ggf. Platzierungsrunde */
+  var ko=S().matches.filter(function(m){return m.cat===cat&&placeBase(m)>0}).sort(function(a,b){return placeBase(a)-placeBase(b)});
   var out=[];
-  function ko(m,ws,lbl){if(!m){out.push({l:lbl});return}var w=winnerSide(m);
-    if(!w){out.push({l:(ws?"Sieger ":"Verlierer ")+lbl});return}
-    out.push({t:resolve(m,ws?w:(w==="home"?"away":"home"))})}
-  ko(F,true,"Finale");ko(F,false,"Finale");ko(P3,true,"Spiel um Platz 3");ko(P3,false,"Spiel um Platz 3");
+  ko.forEach(function(m){var lbl=m.round,w=winnerSide(m);
+    [true,false].forEach(function(win){
+      if(!w)out.push({l:(win?"Sieger ":"Verlierer ")+lbl});
+      else out.push({t:resolve(m,win?w:(w==="home"?"away":"home"))})})});
   var pr=prTable(cat);
   for(var i=0;i<pr.n;i++)out.push(pr.done&&pr.rows[i]?{t:pr.rows[i].t}:{l:(i+1)+". der Platzierungsrunde"});
   return out;
@@ -202,14 +216,17 @@ function tableHTML(rows,startAt,missing){
     (missing||[]).map(function(sp,i){return '<tr><td class="pos">'+(rows.length+i+startAt)+'</td><td class="team"><span class="tc">'+logo(null,28)+'<span class="ph-t">'+esc(sp.p+". "+shortG(sp.g))+'</span></span></td><td>–</td><td class="sun">–</td><td class="sun">–</td><td class="sun">–</td><td>–</td><td class="pts">–</td></tr>'}).join("")+
     '</tbody></table></div>';
 }
+function groupNote(cat){var ms=S().matches.filter(function(m){return m.cat===cat});
+  if(ms.some(function(m){return /Halbfinale/.test(m.round||"")}))return "Platz 1 und 2 spielen im Halbfinale.";
+  return "Am Sonntag spielen die Gruppenplätze direkt gegeneinander: 1.–1. im Finale, 2.–2. um Platz 3 usw."}
 function vTable(){
   var c=tcat,gs=groupsOf(c),pr=prTable(c),fp=finalPlaces(c);
   var chips='<div class="chips" role="group" aria-label="Wettbewerb">'+CATS.map(function(x){return '<button class="chip" data-tcat="'+x+'" aria-pressed="'+(x===c)+'">'+x+'</button>'}).join("")+'</div>';
   var body=gs.map(function(g){var s=standings(g),ms=S().matches.filter(function(m){return m.group===g});
-    return '<h2 class="sec">'+esc(shortG(g))+'</h2>'+tableHTML(s,1)+'<p class="sub">'+(groupDone(g)?'Gruppe abgeschlossen.':ms.filter(hasScore).length+' von '+ms.length+' Spielen gespielt.')+' Platz 1 und 2 spielen im Halbfinale.</p>'}).join("");
-  body+='<h2 class="sec">Platzierungsrunde · Plätze 5 bis '+(4+pr.n)+'</h2>'+tableHTML(pr.rows,5,pr.missing)+'<p class="sub">Die Gruppendritten bis -letzten spielen je zwei Spiele gegen Teams der anderen Gruppe. '+pr.played+' von '+pr.count+' Spielen gespielt. Bei Gleichstand zählt zuletzt die bessere Gruppenplatzierung.</p>';
+    return '<h2 class="sec">'+esc(shortG(g))+'</h2>'+tableHTML(s,1)+'<p class="sub">'+(groupDone(g)?'Gruppe abgeschlossen.':ms.filter(hasScore).length+' von '+ms.length+' Spielen gespielt.')+' '+groupNote(c)+'</p>'}).join("");
+  if(pr.n)body+='<h2 class="sec">Platzierungsrunde · Plätze 5 bis '+(4+pr.n)+'</h2>'+tableHTML(pr.rows,5,pr.missing)+'<p class="sub">Die Gruppendritten bis -letzten spielen je zwei Spiele gegen Teams der anderen Gruppe. '+pr.played+' von '+pr.count+' Spielen gespielt. Bei Gleichstand zählt zuletzt die bessere Gruppenplatzierung.</p>';
   body+='<h2 class="sec">Endplatzierung</h2><div class="podium">'+fp.map(function(x,i){return '<div class="place p'+(i+1)+'"><span class="rk">'+(i+1)+'</span>'+logo(x.t||null,30)+(x.t?'<b>'+esc(x.t.name)+'</b>':'<b class="ph-t">'+esc(x.l)+'</b>')+'</div>'}).join("")+'</div>';
-  return pageHead("Tabelle")+'<main><div class="wrap">'+chips+body+'<p class="hint">Sieg 3 Punkte, Unentschieden 1 Punkt. Bei Gleichstand zählen Tordifferenz, erzielte Tore und der direkte Vergleich. Halbfinale, Spiel um Platz 3 und Finale werden bei Unentschieden per 7-m-Schießen entschieden.</p></div></main>'+nav();
+  return pageHead("Tabelle")+'<main><div class="wrap">'+chips+body+'<p class="hint">Sieg 3 Punkte, Unentschieden 1 Punkt. Bei Gleichstand zählen Tordifferenz, erzielte Tore und der direkte Vergleich. Halbfinale, Platzierungsspiele und Finale werden bei Unentschieden per 7-m-Schießen entschieden.</p></div></main>'+nav();
 }
 function catHTML(c){
   return '<section class="cat"><h2 class="sec">'+esc(c.name)+'</h2>'+((c.items||[]).length?c.items.map(function(i){
@@ -279,15 +296,29 @@ function aInfo(D){
    '<button class="btn ghost" data-act="addInfo">Abschnitt hinzufügen</button>';
 }
 function aGeneral(D){
-  return '<div class="card"><h2 class="sec" style="margin-top:0">Live-Anzeige</h2><p class="hint">Mit Spielzeit und echter Uhrzeit erkennt der Spielplan, welche Spiele gerade laufen. Sobald ein Ergebnis eingetragen ist, gilt ein Spiel als beendet.</p>'+
-   '<div class="mgrid"><div><label class="f" for="sday" style="margin-top:0">Erster Turniertag</label><input class="in" id="sday" type="date" data-k="set.day" value="'+esc(D.settings.day||"")+'"></div>'+
-   '<div><label class="f" for="sdd" style="margin-top:0">Damen (Min.)</label><input class="in" id="sdd" type="number" min="1" data-k="set.durD" value="'+esc(D.settings.durD||25)+'"></div>'+
-   '<div><label class="f" for="sdh" style="margin-top:0">Herren (Min.)</label><input class="in" id="sdh" type="number" min="1" data-k="set.durH" value="'+esc(D.settings.durH||20)+'"></div></div></div>'+
+  var days={};slotGroups(D).forEach(function(g){(days[g.day]=days[g.day]||[]).push(g)});
+  var plan=Object.keys(days).sort().map(function(d){return '<h2 class="sec">'+esc(fmtDay(d))+'</h2><div class="mgrid">'+days[d].map(function(g){
+      var last=g.ms[g.ms.length-1],end=last?tfmt(tmin(last.time)+durOf(D,last)):"";
+      return '<div><label class="f" for="st-'+esc(d+g.hall)+'" style="margin-top:0">Start '+esc(g.hall?"Halle "+g.hall:"")+'</label><input class="in" type="time" id="st-'+esc(d+g.hall)+'" data-k="start" data-day="'+esc(d)+'" data-hall="'+esc(g.hall)+'" value="'+esc(startOf(D,d,g.hall,g.ms))+'"><div class="hint" style="margin:4px 0 0">'+g.ms.length+' Spiele, Ende '+esc(end)+' Uhr</div></div>'}).join("")+'</div>'}).join("");
+  return '<div class="card"><h2 class="sec" style="margin-top:0">Spielzeiten und Starts</h2><p class="hint">Änderst du hier einen Wert, rechnet die App alle Anstoßzeiten neu: Spiele einer Halle laufen am Tag in ihrer bisherigen Reihenfolge nacheinander, jeweils Spielzeit plus Wechsel. Einzeln geänderte Zeiten werden dabei überschrieben.</p>'+
+   '<div class="mgrid"><div><label class="f" for="sdd" style="margin-top:0">Damen (Min.)</label><input class="in" id="sdd" type="number" min="1" data-k="tp.durD" value="'+esc(D.settings.durD||25)+'"></div>'+
+   '<div><label class="f" for="sdh" style="margin-top:0">Herren (Min.)</label><input class="in" id="sdh" type="number" min="1" data-k="tp.durH" value="'+esc(D.settings.durH||20)+'"></div>'+
+   '<div><label class="f" for="spa" style="margin-top:0">Wechsel (Min.)</label><input class="in" id="spa" type="number" min="0" data-k="tp.pause" value="'+esc(D.settings.pause==null?5:D.settings.pause)+'"></div></div>'+plan+'<p class="hint" style="margin-top:14px">Spielplan aus der Vorlage im Repository übernehmen (Paarungen, Runden, Hallen, Zeiten). Teamnamen, Logos und Ergebnisse unveränderter Spiele bleiben erhalten.</p>'+armBtn("loadPlan","","Spielplan aus Vorlage übernehmen","Wirklich übernehmen?","ghost sm")+'</div>'+
+   '<div class="card"><h2 class="sec" style="margin-top:0">Live-Anzeige</h2><p class="hint">Mit Spielzeit und echter Uhrzeit erkennt der Spielplan, welche Spiele gerade laufen. Sobald ein Ergebnis eingetragen ist, gilt ein Spiel als beendet.</p>'+
+   '<label class="f" for="sday" style="margin-top:0">Erster Turniertag</label><input class="in" id="sday" type="date" data-k="set.day" value="'+esc(D.settings.day||"")+'"></div>'+
    '<div class="card"><label class="f" for="sd" style="margin-top:0">Datum als Text</label><input class="in" id="sd" data-k="set.date" value="'+esc(D.settings.date)+'">'+
    '<label class="f" for="sp">Ort</label><input class="in" id="sp" data-k="set.place" value="'+esc(D.settings.place)+'"></div>'+
    '<div class="card"><h2 class="sec" style="margin-top:0">Vereinslogo</h2><div class="upl"><span class="lg" style="--s:56px"><img src="'+curLogo()+'" alt=""></span><label class="btn ghost sm">Logo ersetzen<input type="file" accept="image/png,image/jpeg" data-clublogo="1"></label></div></div>'+
    '<p class="hint">Veröffentlichen speichert alles in Firebase. Alle geöffneten Ansichten aktualisieren sich danach von selbst.</p>';
 }
+/* Spielplan aus default-state.json übernehmen, Ergebnisse unveränderter Spiele behalten */
+async function loadPlan(){
+  try{var def=await (await fetch("default-state.json",{cache:"no-cache"})).json()}catch(e){toast("Vorlage konnte nicht geladen werden.");return}
+  var keep={};DRAFT.matches.forEach(function(m){keep[m.id]=m});
+  var same=function(a,b){return a&&b&&a.cat===b.cat&&a.group===b.group&&a.round===b.round&&a.home===b.home&&a.away===b.away&&JSON.stringify(a.hsrc||null)===JSON.stringify(b.hsrc||null)&&JSON.stringify(a.asrc||null)===JSON.stringify(b.asrc||null)};
+  DRAFT.matches=def.matches.map(function(m){var o=keep[m.id];if(same(o,m)){["hs","as","hp","ap"].forEach(function(f){m[f]=o[f]})}return m});
+  ["durD","durH","pause","starts"].forEach(function(k){if(def.settings&&def.settings[k]!=null)DRAFT.settings[k]=clone(def.settings[k])});
+  clearCache();markDirty();render(true);toast("Spielplan übernommen. Zum Anzeigen veröffentlichen.")}
 function isDirty(){return !!DRAFT&&JSON.stringify(DRAFT)!==JSON.stringify(STATE)}
 function vAdmin(){
   var D=DRAFT,body=({teams:aTeams,plan:aPlan,info:aInfo,general:aGeneral}[atab]||aPlan)(D),d=isDirty();
@@ -335,8 +366,17 @@ app.addEventListener("input",function(e){
   else if(k==="cat.name")findC(id).name=v;
   else if(k==="info.title"||k==="info.text")DRAFT.info.find(function(x){return x.id===id})[k.slice(5)]=v;
   else if(k.indexOf("set.")===0)DRAFT.settings[k.slice(4)]=v;
+  else if(k.indexOf("tp.")===0||k==="start")return;
   markDirty();
 });
+/* Zeitplan-Einstellungen: erst nach fertiger Eingabe neu rechnen */
+app.addEventListener("change",function(e){
+  var el=e.target,k=el.dataset.k;if(!DRAFT||!(k==="start"||(k&&k.indexOf("tp.")===0)))return;var v=el.value;
+  var old=clone(DRAFT.settings);
+  if(k==="start"){if(tmin(v)===null)return;var ss=DRAFT.settings.starts=DRAFT.settings.starts||{};(ss[el.dataset.day]=ss[el.dataset.day]||{})[el.dataset.hall]=v;
+    slotGroups(DRAFT).forEach(function(g){if(!(ss[g.day]&&tmin(ss[g.day][g.hall])!==null)){(ss[g.day]=ss[g.day]||{})[g.hall]=startOf(DRAFT,g.day,g.hall,g.ms)}})}
+  else{var n=parseNum(v);if(n===null||n<(k==="tp.pause"?0:1))return;DRAFT.settings[k.slice(3)]=Math.round(n)}
+  reflow(DRAFT,old);clearCache();markDirty();render(true);toast("Alle Spielzeiten angepasst. Zum Übernehmen veröffentlichen.")});
 
 /* Logos: quadratisch, einheitliche Größe */
 function encodeLogo(img,N){
@@ -402,6 +442,7 @@ app.addEventListener("click",function(e){
   var a=t.dataset.act,id=t.dataset.id;
   if(a==="logout"){if(FB)signOut(FB.auth);DRAFT=null;go("home");return}
   if(a==="publish"){publish();return}
+  if(a==="loadPlan"){if(!arm("loadPlan:"))return;loadPlan();return}
   if(a==="reset"){if(!arm("reset:"))return;DRAFT=clone(STATE);saveDraft();render(true);toast("Änderungen verworfen");return}
   if(a==="delLogo"){DRAFT.teams.find(function(x){return x.id===id}).logo=""}
   else if(a==="addInfo"){DRAFT.info.push({id:uid("n"),title:"Neuer Abschnitt",text:""})}
