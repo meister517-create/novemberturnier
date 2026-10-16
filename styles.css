@@ -161,7 +161,7 @@ h2.sec:first-child{margin-top:6px}
 .item .soldout{color:var(--royal-ink);font-weight:700;font-size:.82rem}
 /* Navigation */
 nav.bn{position:fixed;left:0;right:0;bottom:0;z-index:20;background:color-mix(in srgb,var(--surface) 90%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
-nav.bn .wrap{display:grid;grid-template-columns:repeat(5,1fr);height:var(--nav-h)}
+nav.bn .wrap{display:grid;grid-template-columns:repeat(4,1fr);height:var(--nav-h)}
 nav.bn button{background:none;border:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:.7rem;font-weight:600;color:var(--muted);cursor:pointer;position:relative;padding:0;min-width:0}
 nav.bn svg{width:23px;height:23px}
 nav.bn button[aria-current="page"]{color:var(--royal-ink)}

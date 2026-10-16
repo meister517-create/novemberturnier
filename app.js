@@ -133,7 +133,7 @@ var ICON={
  table:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V10h5v11M9 21V4h6v17M15 21v-8h5v8M2 21h20"/></svg>',
  food:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2v8a3 3 0 0 0 6 0V2M9 2v20M17 2c-2 2-3 5-3 8h4v12"/></svg>'
 };
-var NAV=[["home","Start"],["plan","Spielplan"],["teams","Teams"],["table","Tabelle"],["food","Essen"]];
+var NAV=[["home","Start"],["plan","Spielplan"],["teams","Teams"],["table","Tabelle"]];
 function nav(){return '<nav class="bn" aria-label="Hauptnavigation"><div class="wrap">'+NAV.map(function(p){
   return '<button data-go="'+p[0]+'"'+(route===p[0]?' aria-current="page"':'')+'>'+ICON[p[0]]+'<span>'+p[1]+'</span></button>'}).join("")+'</div></nav>'}
 function pageHead(t){return '<div class="ph"><div class="wrap"><img src="'+curLogo()+'" alt="Zur Startseite" role="button" tabindex="0" data-go="home"><h1>'+t+'</h1></div></div>'}
@@ -163,7 +163,7 @@ function vHome(){
   var food=items.length?'<strong>'+items.length+' Angebote</strong><span>'+(ch?"ab "+eur(ch.price):"")+'</span>':'<strong>Karte folgt</strong><span>Speisen und Getränke</span>';
   var tm=S().teams,nd=tm.filter(function(t){return /^Damen/.test(t.group)}).length;
   var teams='<div class="lgs">'+tm.slice(0,12).map(function(t){return logo(t)}).join("")+'</div><strong>'+tm.length+' Teams</strong><span>'+nd+' Damenteams, '+(tm.length-nd)+' Herrenteams</span>';
-  return hero()+'<main><div class="wrap"><div class="tiles">'+tile("plan","Spielplan",plan,"big")+tile("table","Tabelle",tbl,"")+tile("food","Essen & Getränke",food,"")+tile("teams","Teams",teams,"wide")+
+  return hero()+'<main><div class="wrap"><div class="tiles">'+tile("plan","Spielplan",plan,"big")+tile("table","Tabelle",tbl,"")+tile("teams","Teams",teams,"")+
    '</div><p class="foot">43. Novemberturnier des TSC Eintracht Dortmund<br><button data-go="admin">Orga-Bereich</button></p></div></main>'+nav();
 }
 function midLabel(m){return '<b>'+esc(m.cat)+' · '+esc(m.id)+'</b>'+esc(m.group?shortG(m.group):m.round)}
@@ -234,7 +234,7 @@ function vLogin(){
   '<button class="btn blue" style="width:100%;margin-top:18px" type="submit">Anmelden</button><div class="err" id="lerr" role="alert"></div></form>'+
   '<p style="margin-top:18px"><button class="btn ghost sm" data-go="home">Zur Startseite</button></p></div></main>';
 }
-var ATABS=[["plan","Ergebnisse"],["info","Infos"],["teams","Teams"],["food","Essen & Getränke"],["general","Allgemein"]];
+var ATABS=[["plan","Ergebnisse"],["info","Infos"],["teams","Teams"],["general","Allgemein"]];
 function opt(v,l,sel){return '<option value="'+esc(v)+'"'+(v===sel?" selected":"")+'>'+esc(l)+'</option>'}
 function armBtn(act,id,label,armedLabel,cls){var on=armed===act+":"+(id||"");return '<button class="btn '+(cls||"icon sm")+(on?" armed":"")+'" data-act="'+act+'"'+(id?' data-id="'+id+'"':'')+'>'+(on?armedLabel:label)+'</button>'}
 function aTeams(D){
@@ -290,7 +290,7 @@ function aGeneral(D){
 }
 function isDirty(){return !!DRAFT&&JSON.stringify(DRAFT)!==JSON.stringify(STATE)}
 function vAdmin(){
-  var D=DRAFT,body=({teams:aTeams,plan:aPlan,info:aInfo,food:aFood,general:aGeneral}[atab]||aPlan)(D),d=isDirty();
+  var D=DRAFT,body=({teams:aTeams,plan:aPlan,info:aInfo,general:aGeneral}[atab]||aPlan)(D),d=isDirty();
   return '<div class="ph"><div class="wrap"><img src="'+curLogo()+'" alt="Zur Startseite" role="button" tabindex="0" data-go="home"><h1>Orga</h1><button class="info-btn out" data-atab="info" aria-label="Infos bearbeiten">i</button><button class="btn ghost sm" data-act="logout">Abmelden</button></div>'+
    '<div class="wrap"><div class="atabs">'+ATABS.map(function(a){return '<button class="chip" data-atab="'+a[0]+'" aria-pressed="'+(a[0]===atab)+'">'+a[1]+'</button>'}).join("")+'</div></div></div>'+
    '<main style="padding-bottom:120px"><div class="wrap">'+body+'</div></main>'+
@@ -302,7 +302,7 @@ function render(keep){
   if(!STATE){app.innerHTML='<main><div class="wrap"><p class="empty" style="margin-top:30vh">Turnierdaten werden geladen …</p></div></main>';return}
   var y=window.scrollY;clearCache();
   if(route==="admin"){if(!authed()){app.innerHTML=vLogin();bindLogin();return}if(!DRAFT)loadDraft();app.innerHTML=vAdmin()}
-  else{DRAFT=null;app.innerHTML=({home:vHome,plan:vPlan,teams:vTeams,table:vTable,food:vFood,info:vInfo}[route]||vHome)()}
+  else{DRAFT=null;app.innerHTML=({home:vHome,plan:vPlan,teams:vTeams,table:vTable,info:vInfo}[route]||vHome)()}
   if(keep)window.scrollTo(0,y);
 }
 function go(r){route=r;saveResume();render(false);window.scrollTo(0,0);if(r==="plan"){var g=document.querySelector(".game.live")||document.querySelector(".game.next");if(g&&g.getBoundingClientRect().top>innerHeight*.6)g.scrollIntoView({block:"center"})}}
