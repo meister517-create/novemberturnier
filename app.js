@@ -339,19 +339,28 @@ app.addEventListener("input",function(e){
 });
 
 /* Logos: quadratisch, einheitliche Größe */
+function encodeLogo(img,N){
+  var cv=document.createElement("canvas");cv.width=N;cv.height=N;var c=cv.getContext("2d");
+  c.fillStyle="#fff";c.fillRect(0,0,N,N);
+  var sc=Math.min(N/img.width,N/img.height),w=img.width*sc,h=img.height*sc;
+  c.drawImage(img,(N-w)/2,(N-h)/2,w,h);
+  var out=cv.toDataURL("image/webp",.86);
+  if(out.indexOf("data:image/webp")!==0)out=cv.toDataURL("image/jpeg",.85);
+  return out}
 function processLogo(file,N){return new Promise(function(res,rej){
   if(!/^image\/(png|jpeg)$/.test(file.type)){rej(new Error("type"));return}
-  var r=new FileReader();r.onerror=rej;r.onload=function(){var img=new Image();img.onerror=rej;img.onload=function(){
-    var cv=document.createElement("canvas");cv.width=N;cv.height=N;var c=cv.getContext("2d");
-    var sc=Math.min(N/img.width,N/img.height),w=img.width*sc,h=img.height*sc;
-    c.drawImage(img,(N-w)/2,(N-h)/2,w,h);
-    var out=cv.toDataURL("image/webp",.86);
-    if(out.indexOf("data:image/webp")!==0)out=cv.toDataURL("image/png");
-    res(out)};img.src=r.result};r.readAsDataURL(file)})}
+  var r=new FileReader();r.onerror=rej;r.onload=function(){var img=new Image();img.onerror=rej;img.onload=function(){res(encodeLogo(img,N))};img.src=r.result};r.readAsDataURL(file)})}
+/* Bereits gespeicherte große Logos (z. B. PNG aus Safari) nachträglich verkleinern */
+function shrinkLogo(url,N){return new Promise(function(res){
+  if(!url||url.length<30000){res(url);return}
+  var img=new Image();img.onerror=function(){res(url)};img.onload=function(){var o=encodeLogo(img,N);res(o.length<url.length?o:url)};img.src=url})}
+async function shrinkAll(st){
+  for(var i=0;i<st.teams.length;i++){var t=st.teams[i];if(t.logo)t.logo=await shrinkLogo(t.logo,160)}
+  if(st.clubLogo)st.clubLogo=await shrinkLogo(st.clubLogo,320)}
 app.addEventListener("change",async function(e){
   var el=e.target;if(!el.files||!el.files[0])return;
   try{
-    if(el.dataset.logo){var url=await processLogo(el.files[0],192);DRAFT.teams.find(function(t){return t.id===el.dataset.logo}).logo=url;toast("Logo übernommen. Zum Anzeigen veröffentlichen.")}
+    if(el.dataset.logo){var url=await processLogo(el.files[0],160);DRAFT.teams.find(function(t){return t.id===el.dataset.logo}).logo=url;toast("Logo übernommen. Zum Anzeigen veröffentlichen.")}
     else if(el.dataset.clublogo){DRAFT.clubLogo=await processLogo(el.files[0],320);toast("Vereinslogo übernommen. Zum Anzeigen veröffentlichen.")}
     else return;
     markDirty();render(true)}
@@ -364,6 +373,7 @@ async function publish(){
   if(!FB){toast("Firebase ist noch nicht eingerichtet (firebase-config.js).");return}
   var next=clone(DRAFT);next.updated=new Date().toISOString();
   var json=JSON.stringify(next);
+  if(json.length>700000){await shrinkAll(next);await shrinkAll(DRAFT);json=JSON.stringify(next)}
   if(json.length>950000){toast("Zu viele Daten, meist zu viele große Logos. Bitte einzelne Logos entfernen.");return}
   publishing=true;markDirty();
   var base=STATE.updated||null;
