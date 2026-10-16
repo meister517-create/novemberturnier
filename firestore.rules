@@ -1,0 +1,23 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Turnierdaten: alle dürfen lesen, nur freigeschaltete Orga-Konten schreiben.
+    match /turnier/{turnierId} {
+      allow read: if true;
+      allow write: if request.auth != null
+                   && request.auth.uid in [
+                        "DaFbQda952Nq7W9ceeSlcLX1olm2"
+                        // , "UID_ORGA_2"
+                      ]
+                   && request.resource.data.keys().hasOnly(["json", "updated"])
+                   && request.resource.data.json is string
+                   && request.resource.data.json.size() < 1000000;
+    }
+
+    // Alles andere ist gesperrt.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
