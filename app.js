@@ -11,9 +11,15 @@ var STATE=null,USER=null,FB=null;
 var app=document.getElementById("app");
 var DRAFT=null,route="home",filter="Alle",tcat="Damen",atab="plan",afilter="Offen",publishing=false,armed=null,armTimer=null;
 var CATS=["Damen","Herren"];
+/* Schichtpläne: Bereiche mit Personen je Stunde, im Orga-Bereich änderbar */
+var DEFAULT_SHIFT_AREAS=[{id:"caf",name:"Cafeteria",n:2},{id:"grill",name:"Grill- und Bierstand",n:2},{id:"spkO",name:"Sprecherkabine Halle Ost",n:1},{id:"spkW",name:"Sprecherkabine Halle West",n:1}];
+var DEFAULT_SHIFT_PW="1996",shDay="",shQ="";
 var AREAS=[["tag","Tagsüber","Essen und Getränke in der Halle, Samstag und Sonntag"],["party","Playersparty","Getränke auf der Playersparty"]];
 
-function norm(s){s.settings=s.settings||{};s.teams=s.teams||[];s.matches=s.matches||[];s.menu=s.menu||[];s.info=s.info||[];s.menu.forEach(function(c){if(c.area!=="party")c.area="tag";c.items=c.items||[]});return s}
+function norm(s){s.settings=s.settings||{};s.teams=s.teams||[];s.matches=s.matches||[];s.menu=s.menu||[];s.info=s.info||[];s.menu.forEach(function(c){if(c.area!=="party")c.area="tag";c.items=c.items||[]});
+  if(!s.shifts||typeof s.shifts!=="object"||Array.isArray(s.shifts))s.shifts={};if(!s.shiftsOff||typeof s.shiftsOff!=="object"||Array.isArray(s.shiftsOff))s.shiftsOff={};
+  if(!Array.isArray(s.shiftAreas))s.shiftAreas=clone(DEFAULT_SHIFT_AREAS);if(typeof s.shiftPw!=="string"||!s.shiftPw.trim())s.shiftPw=DEFAULT_SHIFT_PW;
+  return s}
 
 /* ---------- Speicher ---------- */
 function lsGet(k){try{return JSON.parse(localStorage.getItem(k)||"null")}catch(e){return null}}
@@ -145,12 +151,13 @@ var ICON={
  plan:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 9h18M8 2v4M16 2v4M7 13h4M7 17h7"/></svg>',
  teams:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 5-3.5 8.5-7 10-3.5-1.5-7-5-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg>',
  table:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V10h5v11M9 21V4h6v17M15 21v-8h5v8M2 21h20"/></svg>',
+ back:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>',
  food:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2v8a3 3 0 0 0 6 0V2M9 2v20M17 2c-2 2-3 5-3 8h4v12"/></svg>'
 };
 var NAV=[["home","Start"],["plan","Spielplan"],["teams","Teams"],["table","Tabelle"]];
 function nav(){return '<nav class="bn" aria-label="Hauptnavigation"><div class="wrap">'+NAV.map(function(p){
   return '<button data-go="'+p[0]+'"'+(route===p[0]?' aria-current="page"':'')+'>'+ICON[p[0]]+'<span>'+p[1]+'</span></button>'}).join("")+'</div></nav>'}
-function pageHead(t){return '<div class="ph"><div class="wrap"><img src="'+curLogo()+'" alt="Zur Startseite" role="button" tabindex="0" data-go="home"><h1>'+t+'</h1></div></div>'}
+function pageHead(t,back){return '<div class="ph"><div class="wrap"><img src="'+curLogo()+'" alt="Zur Startseite" role="button" tabindex="0" data-go="home"><h1>'+t+'</h1>'+(back?'<button class="close-btn phback" data-go="home" aria-label="Zurück zur Startseite">'+ICON.back+'</button>':'')+'</div></div>'}
 
 /* ---------- Ansichten ---------- */
 /* Hallenhockey-Spielfeld als Hintergrund: Schusskreis, 7-m-Punkt, Bande */
@@ -178,7 +185,7 @@ function vHome(){
   var tm=S().teams,nd=tm.filter(function(t){return /^Damen/.test(t.group)}).length;
   var teams='<div class="lgs">'+tm.slice(0,12).map(function(t){return logo(t)}).join("")+'</div><strong>'+tm.length+' Teams</strong><span>'+nd+' Damenteams, '+(tm.length-nd)+' Herrenteams</span>';
   return hero()+'<main><div class="wrap"><div class="tiles">'+tile("plan","Spielplan",plan,"big")+tile("table","Tabelle",tbl,"")+tile("teams","Teams",teams,"")+
-   '</div><p class="foot">43. Novemberturnier des TSC Eintracht Dortmund<br><button data-go="admin">Orga-Bereich</button></p></div></main>'+nav();
+   '</div><p class="foot">43. Novemberturnier des TSC Eintracht Dortmund<br><button data-go="admin">Orga-Bereich</button><br><button data-go="shifts">Schichtpläne</button></p></div></main>'+nav();
 }
 function midLabel(m){return '<b>'+esc(m.cat)+' · '+esc(m.id)+'</b>'+esc(m.group?shortG(m.group):m.round)}
 function gameHTML(m,nx){
@@ -243,6 +250,45 @@ function vInfo(){
    '<main><div class="wrap">'+body+'<button class="btn blue" data-go="home" style="width:100%;margin-top:8px">Zurück zur Startseite</button></div></main>'+nav();
 }
 
+/* ---------- Schichtpläne ---------- */
+function hh(h){return String(h).padStart(2,"0")+":00"}
+function isoToday(){var n=new Date();return n.getFullYear()+"-"+String(n.getMonth()+1).padStart(2,"0")+"-"+String(n.getDate()).padStart(2,"0")}
+function shiftDays(){var d={};S().matches.forEach(function(m){if(mday(m))d[mday(m)]=1});return Object.keys(d).sort()}
+function curShDay(){var ds=shiftDays();if(ds.indexOf(shDay)<0)shDay=ds.indexOf(isoToday())>=0?isoToday():(ds[0]||"");return shDay}
+/* volle Stunden vom ersten Anpfiff bis zum letzten Abpfiff des Tages, beide Hallen */
+function shiftSlots(day){
+  var st=S(),a=null,b=null;st.matches.forEach(function(m){if(mday(m)!==day)return;var t=tmin(m.time);if(t===null)return;var e=t+durOf(st,m);
+    if(a===null||t<a)a=t;if(b===null||e>b)b=e});
+  if(a===null)return [];var out=[];for(var h=Math.floor(a/60);h<Math.ceil(b/60);h++)out.push(h);return out}
+function dayChips(cur){return '<div class="chips" role="group" aria-label="Tag">'+shiftDays().map(function(d){return '<button class="chip" data-shday="'+esc(d)+'" aria-pressed="'+(d===cur)+'">'+esc(fmtDay(d,{weekday:"long"}))+'</button>'}).join("")+'</div>'}
+function shiftKey(day,h,area,i){return day+"-"+String(h).padStart(2,"0")+"|"+area+"|"+i}
+function areaKey(day,h,area){return day+"-"+String(h).padStart(2,"0")+"|"+area}
+function areaOff(st,day,h,area){return !!(st.shiftsOff||{})[areaKey(day,h,area)]}
+function shiftNames(st,day,h,a){var ns=[];for(var i=0;i<a.n;i++){var v=((st.shifts||{})[shiftKey(day,h,a.id,i)]||"").trim();if(v)ns.push(v)}return ns}
+function shiftResults(q){
+  var st=S(),out=[];q=q.trim().toLowerCase();if(!q)return "";
+  shiftDays().forEach(function(day){shiftSlots(day).forEach(function(h){st.shiftAreas.forEach(function(a){
+    if(areaOff(st,day,h,a.id))return;var ns=shiftNames(st,day,h,a),me=ns.filter(function(n){return n.toLowerCase().indexOf(q)>=0});
+    if(!me.length)return;var mates=ns.filter(function(n){return me.indexOf(n)<0});
+    out.push('<div class="shres"><span class="shrt">'+esc(fmtDay(day,{weekday:"short"}))+' '+hh(h)+' – '+hh(h+1)+'</span><b>'+esc(a.name)+'</b><span class="shrm">'+esc(me.join(", "))+(mates.length?' · mit '+esc(mates.join(", ")):'')+'</span></div>')})})});
+  return out.length?'<p class="hint" style="margin:0 0 8px"><b>'+out.length+' Schicht'+(out.length===1?'':'en')+'</b> für „'+esc(q)+'“ an allen Tagen</p><div class="shrlist">'+out.join("")+'</div>':'<p class="hint">Keine Schicht für „'+esc(q)+'“ gefunden.</p>'}
+function shiftsOk(){return lsGet("nt-shifts")===STATE.shiftPw}
+function vShifts(){
+  if(!shiftsOk())return pageHead("Schichtpläne",true)+'<main><div class="wrap"><form id="shf" class="card shlock"><h2 class="sec" style="margin-top:0">Geschützter Bereich</h2><p class="hint">Bitte das Passwort für die Schichtpläne eingeben.</p>'+
+    '<label class="f" for="shpw">Passwort</label><input class="in" id="shpw" type="password" autocomplete="off" required>'+
+    '<button class="btn blue" type="submit" style="width:100%;margin-top:14px">Öffnen</button><div class="err" id="sherr" role="alert"></div></form></div></main>'+nav();
+  var st=S(),day=curShDay(),slots=shiftSlots(day),now=new Date(),isToday=day===isoToday();
+  var cards=slots.map(function(h){
+    var isNow=isToday&&now.getHours()===h;
+    var rows=st.shiftAreas.filter(function(a){return !areaOff(st,day,h,a.id)}).map(function(a){var ns=shiftNames(st,day,h,a);
+      return '<div class="shrow"><span class="sha">'+esc(a.name)+'</span><span class="shn2'+(ns.length<a.n?' open':'')+'">'+(ns.length?ns.map(esc).join(", "):'')+(ns.length<a.n?(ns.length?' · ':'')+(a.n-ns.length)+' offen':'')+'</span></div>'}).join("");
+    return '<section class="shc'+(isNow?' now':'')+'"><h3>'+hh(h)+' – '+hh(h+1)+' Uhr'+(isNow?'<span class="pill lv"><i></i>Jetzt</span>':'')+'</h3>'+(rows||'<p class="hint" style="margin:4px 0 0">Keine Schicht in dieser Stunde.</p>')+'</section>'}).join("");
+  return pageHead("Schichtpläne",true)+'<main><div class="wrap">'+
+    '<label class="f" for="shq" style="margin-top:0">Meine Schichten</label><input class="in" id="shq" type="search" value="'+esc(shQ)+'" placeholder="Deinen Namen eingeben …" aria-label="Eigenen Namen suchen" style="margin:0 0 12px">'+
+    '<div id="shres">'+shiftResults(shQ)+'</div>'+
+    '<div id="shall"'+(shQ.trim()?' style="display:none"':'')+'>'+dayChips(day)+(slots.length?'<div class="shlist">'+cards+'</div>':'<div class="empty">Noch keine Schichten.</div>')+'</div>'+
+    '<p style="margin-top:22px;text-align:center"><button class="btn ghost sm" data-act="shLock">Bereich wieder sperren</button></p></div></main>'+nav()}
+
 /* ---------- Orga ---------- */
 function vLogin(){
   return '<main><div class="login"><img src="'+curLogo()+'" alt=""><h1>Orga-Bereich</h1><p>Anmelden, um das Novemberturnier zu pflegen.</p>'+
@@ -251,7 +297,7 @@ function vLogin(){
   '<button class="btn blue" style="width:100%;margin-top:18px" type="submit">Anmelden</button><div class="err" id="lerr" role="alert"></div></form>'+
   '<p style="margin-top:18px"><button class="btn ghost sm" data-go="home">Zur Startseite</button></p></div></main>';
 }
-var ATABS=[["plan","Ergebnisse"],["info","Infos"],["teams","Teams"],["general","Allgemein"]];
+var ATABS=[["plan","Ergebnisse"],["info","Infos"],["teams","Teams"],["shifts","Schichten"],["general","Allgemein"]];
 function opt(v,l,sel){return '<option value="'+esc(v)+'"'+(v===sel?" selected":"")+'>'+esc(l)+'</option>'}
 function armBtn(act,id,label,armedLabel,cls){var on=armed===act+":"+(id||"");return '<button class="btn '+(cls||"icon sm")+(on?" armed":"")+'" data-act="'+act+'"'+(id?' data-id="'+id+'"':'')+'>'+(on?armedLabel:label)+'</button>'}
 function aTeams(D){
@@ -295,6 +341,23 @@ function aInfo(D){
      '<textarea class="in" style="margin-top:8px" id="it-'+x.id+'" data-k="info.text" data-id="'+x.id+'" aria-label="Text">'+esc(x.text)+'</textarea></div>'}).join("")+
    '<button class="btn ghost" data-act="addInfo">Abschnitt hinzufügen</button>';
 }
+function shiftCount(D){var day=curShDay(),tot=0,fil=0;shiftSlots(day).forEach(function(h){D.shiftAreas.forEach(function(a){if(D.shiftsOff[areaKey(day,h,a.id)])return;for(var i=0;i<a.n;i++){tot++;if((D.shifts[shiftKey(day,h,a.id,i)]||"").trim())fil++}})});return fil+" von "+tot+" Plätzen belegt"}
+function aShifts(D){
+  var day=curShDay(),slots=shiftSlots(day),sh=D.shifts;
+  var cards=slots.map(function(h){
+    return '<div class="card"><h2 class="sec" style="margin:0 0 8px">'+hh(h)+' – '+hh(h+1)+' Uhr</h2>'+D.shiftAreas.map(function(a){
+      var ak=areaKey(day,h,a.id);
+      if(D.shiftsOff[ak])return '<div class="row shoff" style="margin-top:8px"><span class="grow"><b>'+esc(a.name)+'</b> – keine Schicht</span><button class="btn ghost sm" data-act="shOn" data-id="'+esc(ak)+'">Wiederherstellen</button></div>';
+      var ins='',has=false;for(var i=0;i<a.n;i++){var k=shiftKey(day,h,a.id,i),v=sh[k]||"";if(v.trim())has=true;
+        ins+='<input class="in grow" id="sh-'+esc(k)+'" data-k="shift" data-id="'+esc(k)+'" value="'+esc(v)+'" placeholder="Name" aria-label="'+esc(a.name)+' '+hh(h)+' Person '+(i+1)+'">'}
+      return '<div style="margin-top:8px"><div class="row" style="justify-content:space-between;margin-bottom:4px"><label class="f" style="margin:0">'+esc(a.name)+'</label>'+(has?armBtn("shOff",ak,"✕","Namen löschen?"):'<button class="btn icon sm" data-act="shOff" data-id="'+esc(ak)+'" aria-label="Schicht '+esc(a.name)+' '+hh(h)+' entfernen" title="Schicht entfernen">✕</button>')+'</div><div class="row">'+ins+'</div></div>'}).join("")+'</div>'}).join("");
+  var areas='<details class="card more"><summary><b>Bereiche und Passwort</b></summary><p class="hint" style="margin-top:10px">Bereiche gelten für alle Stunden beider Tage. Die Zahl legt fest, wie viele Personen je Stunde eingeteilt werden.</p>'+
+    D.shiftAreas.map(function(a,i){return '<div class="row" style="margin-top:8px"><input class="in grow" id="sa-'+a.id+'" data-k="sa.name" data-id="'+a.id+'" value="'+esc(a.name)+'" aria-label="Name des Bereichs"><select class="in" style="width:auto" id="san-'+a.id+'" data-k="sa.n" data-id="'+a.id+'" aria-label="Personen je Stunde">'+[1,2,3,4].map(function(n){return opt(String(n),n+(n===1?" Person":" Personen"),String(a.n))}).join("")+'</select>'+
+      mvBtns("saUp","saDown",a.id,i===0,i===D.shiftAreas.length-1)+armBtn("saDel",a.id,"✕","Löschen?")+'</div>'}).join("")+
+    '<button class="btn ghost sm" data-act="saAdd" style="margin-top:10px">Bereich hinzufügen</button>'+
+    '<label class="f" for="shpwa">Passwort für die Schichtpläne</label><input class="in" id="shpwa" data-k="shpw" value="'+esc(D.shiftPw)+'" autocomplete="off"><p class="hint" style="margin-top:4px">Nach einer Änderung müssen alle Helfer das neue Passwort eingeben.</p></details>';
+  return '<p class="hint">Schichten je volle Stunde, passend zum Spielplan des Tages (vom ersten Anpfiff bis zum letzten Abpfiff in beiden Hallen). Ist ein Bereich in einer Stunde nicht besetzt, die Schicht mit ✕ entfernen. Mit „Veröffentlichen“ speichern. Für Helfer unten auf der Startseite unter „Schichtpläne“, Passwort '+esc(D.shiftPw)+'.</p>'+areas+
+    dayChips(day)+'<p class="hint"><span class="badge" id="shbadge">'+shiftCount(D)+'</span></p>'+(slots.length?'<div class="rows">'+cards+'</div>':'<div class="empty">Für diesen Tag gibt es noch keine Spiele.</div>')}
 function aGeneral(D){
   var days={};slotGroups(D).forEach(function(g){(days[g.day]=days[g.day]||[]).push(g)});
   var plan=Object.keys(days).sort().map(function(d){return '<h2 class="sec">'+esc(fmtDay(d))+'</h2><div class="mgrid">'+days[d].map(function(g){
@@ -321,7 +384,7 @@ async function loadPlan(){
   clearCache();markDirty();render(true);toast("Spielplan übernommen. Zum Anzeigen veröffentlichen.")}
 function isDirty(){return !!DRAFT&&JSON.stringify(DRAFT)!==JSON.stringify(STATE)}
 function vAdmin(){
-  var D=DRAFT,body=({teams:aTeams,plan:aPlan,info:aInfo,general:aGeneral}[atab]||aPlan)(D),d=isDirty();
+  var D=DRAFT,body=({teams:aTeams,plan:aPlan,info:aInfo,shifts:aShifts,general:aGeneral}[atab]||aPlan)(D),d=isDirty();
   return '<div class="ph"><div class="wrap"><img src="'+curLogo()+'" alt="Zur Startseite" role="button" tabindex="0" data-go="home"><h1>Orga</h1><button class="info-btn out" data-atab="info" aria-label="Infos bearbeiten">i</button><button class="btn ghost sm" data-act="logout">Abmelden</button></div>'+
    '<div class="wrap"><div class="atabs">'+ATABS.map(function(a){return '<button class="chip" data-atab="'+a[0]+'" aria-pressed="'+(a[0]===atab)+'">'+a[1]+'</button>'}).join("")+'</div></div></div>'+
    '<main style="padding-bottom:120px"><div class="wrap">'+body+'</div></main>'+
@@ -333,7 +396,7 @@ function render(keep){
   if(!STATE){app.innerHTML='<main><div class="wrap"><p class="empty" style="margin-top:30vh">Turnierdaten werden geladen …</p></div></main>';return}
   var y=window.scrollY;clearCache();
   if(route==="admin"){if(!authed()){app.innerHTML=vLogin();bindLogin();return}if(!DRAFT)loadDraft();app.innerHTML=vAdmin()}
-  else{DRAFT=null;app.innerHTML=({home:vHome,plan:vPlan,teams:vTeams,table:vTable,info:vInfo}[route]||vHome)()}
+  else{DRAFT=null;app.innerHTML=({home:vHome,plan:vPlan,teams:vTeams,table:vTable,info:vInfo,shifts:vShifts}[route]||vHome)()}
   if(keep)window.scrollTo(0,y);
 }
 function go(r){route=r;saveResume();render(false);window.scrollTo(0,0);if(r==="plan"){var g=document.querySelector(".game.live")||document.querySelector(".game.next");if(g&&g.getBoundingClientRect().top>innerHeight*.6)g.scrollIntoView({block:"center"})}}
@@ -356,6 +419,7 @@ function findC(id){return DRAFT.menu.find(function(c){return c.id===id})}
 function parseNum(v){v=String(v).trim().replace(",",".");if(v==="")return null;var n=parseFloat(v);return isNaN(n)?null:n}
 
 app.addEventListener("input",function(e){
+  if(e.target.id==="shq"){shQ=e.target.value;document.getElementById("shres").innerHTML=shiftResults(shQ);document.getElementById("shall").style.display=shQ.trim()?"none":"";return}
   var el=e.target,k=el.dataset.k;if(!k||!DRAFT)return;var id=el.dataset.id,v=el.type==="checkbox"?el.checked:el.value;
   if(k==="team.name")DRAFT.teams.find(function(t){return t.id===id}).name=v;
   else if(k.indexOf("m.")===0){var m=findM(id),f=k.slice(2);
@@ -367,6 +431,13 @@ app.addEventListener("input",function(e){
   else if(k==="cat.name")findC(id).name=v;
   else if(k==="info.title"||k==="info.text")DRAFT.info.find(function(x){return x.id===id})[k.slice(5)]=v;
   else if(k.indexOf("set.")===0)DRAFT.settings[k.slice(4)]=v;
+  else if(k==="shift"){if(String(v).trim())DRAFT.shifts[id]=v;else delete DRAFT.shifts[id];var bd=document.getElementById("shbadge");if(bd)bd.textContent=shiftCount(DRAFT)}
+  else if(k==="sa.name")DRAFT.shiftAreas.find(function(a){return a.id===id}).name=v;
+  else if(k==="sa.n"){var sa=DRAFT.shiftAreas.find(function(a){return a.id===id}),nn=+v;
+    /* Namen auf wegfallenden Plätzen entfernen */
+    Object.keys(DRAFT.shifts).forEach(function(key){var p=key.split("|");if(p[1]===id&&+p[2]>=nn)delete DRAFT.shifts[key]});
+    sa.n=nn;markDirty();render(true);return}
+  else if(k==="shpw")DRAFT.shiftPw=v;
   else if(k.indexOf("tp.")===0||k==="start")return;
   markDirty();
 });
@@ -469,7 +540,8 @@ function swapIn(arr,i,d){var j=i+d;if(i<0||j<0||j>=arr.length)return;var x=arr[i
 function arm(key){clearTimeout(armTimer);if(armed===key){armed=null;return true}armed=key;armTimer=setTimeout(function(){armed=null;render(true)},4000);render(true);return false}
 
 app.addEventListener("click",function(e){
-  var t=e.target.closest("[data-go],[data-filter],[data-atab],[data-afilter],[data-tcat],[data-act],[data-team]");if(!t)return;
+  var t=e.target.closest("[data-go],[data-filter],[data-atab],[data-afilter],[data-tcat],[data-act],[data-team],[data-shday]");if(!t)return;
+  if(t.dataset.shday){shDay=t.dataset.shday;render(true);return}
   if(t.dataset.go){go(t.dataset.go);return}
   if(t.dataset.team){filter="team:"+t.dataset.team;go("plan");return}
   if(t.dataset.filter){filter=t.dataset.filter;saveResume();render(true);return}
@@ -483,7 +555,18 @@ app.addEventListener("click",function(e){
   if(a==="clearM"){if(!arm("clearM:"+id))return;saveMatch(id,true);return}
   if(a==="loadPlan"){if(!arm("loadPlan:"))return;loadPlan();return}
   if(a==="reset"){if(!arm("reset:"))return;DRAFT=clone(STATE);saveDraft();render(true);toast("Änderungen verworfen");return}
-  if(a==="delLogo"){DRAFT.teams.find(function(x){return x.id===id}).logo=""}
+  if(a==="shLock"){lsSet("nt-shifts",null);render(false);return}
+  if(a==="shOff"){var sp=id.split("|"),sar=DRAFT.shiftAreas.find(function(x){return x.id===sp[1]}),has=false;
+    if(sar)for(var si=0;si<sar.n;si++){if((DRAFT.shifts[id+"|"+si]||"").trim())has=true}
+    if(has&&!arm("shOff:"+id))return;
+    Object.keys(DRAFT.shifts).forEach(function(key){if(key.indexOf(id+"|")===0)delete DRAFT.shifts[key]});DRAFT.shiftsOff[id]=true}
+  else if(a==="shOn"){delete DRAFT.shiftsOff[id]}
+  else if(a==="saAdd"){DRAFT.shiftAreas.push({id:uid("a"),name:"Neuer Bereich",n:1})}
+  else if(a==="saDel"){if(!arm("saDel:"+id))return;DRAFT.shiftAreas=DRAFT.shiftAreas.filter(function(x){return x.id!==id});
+    Object.keys(DRAFT.shifts).forEach(function(key){if(key.split("|")[1]===id)delete DRAFT.shifts[key]});
+    Object.keys(DRAFT.shiftsOff).forEach(function(key){if(key.split("|")[1]===id)delete DRAFT.shiftsOff[key]})}
+  else if(a==="saUp"||a==="saDown"){swapIn(DRAFT.shiftAreas,DRAFT.shiftAreas.findIndex(function(x){return x.id===id}),a==="saUp"?-1:1)}
+  else if(a==="delLogo"){DRAFT.teams.find(function(x){return x.id===id}).logo=""}
   else if(a==="addInfo"){DRAFT.info.push({id:uid("n"),title:"Neuer Abschnitt",text:""})}
   else if(a==="delInfo"){if(!arm("delInfo:"+id))return;DRAFT.info=DRAFT.info.filter(function(x){return x.id!==id})}
   else if(a==="infoUp"||a==="infoDown"){swapIn(DRAFT.info,DRAFT.info.findIndex(function(x){return x.id===id}),a==="infoUp"?-1:1)}
@@ -498,12 +581,18 @@ app.addEventListener("click",function(e){
   markDirty();render(true);
 });
 app.addEventListener("keydown",function(e){if((e.key==="Enter"||e.key===" ")&&e.target.matches("img[data-go]")){e.preventDefault();go(e.target.dataset.go)}});
+app.addEventListener("submit",function(e){
+  if(e.target.id!=="shf")return;e.preventDefault();
+  var v=document.getElementById("shpw").value.trim();
+  if(v===STATE.shiftPw){lsSet("nt-shifts",STATE.shiftPw);render(false)}else{document.getElementById("sherr").textContent="Das Passwort stimmt nicht."}
+});
 
 /* ---------- Start ---------- */
 setInterval(function(){if((route==="plan"||route==="home"))render(true)},20000);
 window.addEventListener("pagehide",saveResume);
 var res=lsGet("nt-resume");
 if(res&&Date.now()-res.t<90e3){route=res.route||"home";atab=res.atab||atab;afilter=res.afilter||afilter;filter=res.filter||"Alle";tcat=res.tcat||tcat}
+if(location.hash==="#schichten")route="shifts";
 render(false);
 
 function applyRemote(s){

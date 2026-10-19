@@ -221,3 +221,22 @@ details.more summary{cursor:pointer;font-size:.85rem;color:var(--muted)}
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.001ms!important;transition-duration:.001ms!important}
 }
+
+/* Schichtpläne */
+.phback svg{width:22px;height:22px}
+.shlist{display:grid;gap:10px}
+.shc{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:12px 14px}
+.shc.now{border-color:var(--royal);box-shadow:0 0 0 2px var(--royal) inset}
+.shc h3{margin:0 0 6px;font-size:1.02rem;font-weight:850;display:flex;align-items:center;gap:8px;font-variant-numeric:tabular-nums}
+.shc .pill{display:inline-flex;background:var(--royal);color:#fff;font-size:.7rem;font-weight:700;border-radius:999px;padding:2px 8px}
+.shrow{display:grid;grid-template-columns:minmax(7rem,11rem) 1fr;gap:10px;padding:6px 0;border-top:1px solid var(--line);font-size:.93rem}
+.sha{color:var(--muted);font-weight:600}
+.shn2{font-weight:650}
+.shn2.open{color:var(--royal-ink)}
+.shlock{max-width:420px;margin:0 auto}
+.shrlist{display:grid;gap:8px}
+.shres{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px 14px;display:grid;gap:2px}
+.shrt{color:var(--royal-ink);font-weight:800;font-variant-numeric:tabular-nums}
+.shrm{color:var(--muted);font-size:.9rem}
+.shoff{color:var(--muted);font-size:.92rem;border-top:1px dashed var(--line);padding-top:8px}
+.badge{display:inline-block;background:var(--soft);color:var(--royal-ink);font-weight:700;border-radius:999px;padding:3px 10px;font-size:.82rem}
