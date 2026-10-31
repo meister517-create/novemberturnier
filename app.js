@@ -56,7 +56,9 @@ function reflow(st,old){old=old||st.settings;var p=+st.settings.pause,op=+old.pa
   slotGroups(st).forEach(function(g){var gaps=g.ms.map(function(m,i){if(!i)return 0;var pr=g.ms[i-1],x=tmin(m.time)-(tmin(pr.time)+od(pr)+op);return x>0?x:0});
     var t=tmin(startOf(st,g.day,g.hall,g.ms));g.ms.forEach(function(m,i){t+=gaps[i];m.time=tfmt(t);t+=durOf(st,m)+p})})}
 function matchStart(m){var d=mday(m);if(!d||!m.time)return null;var p=d.split("-"),h=m.time.split(":");return new Date(+p[0],p[1]-1,+p[2],+h[0],+h[1]||0).getTime()}
-function liveInfo(m){if(hasScore(m))return null;var s=matchStart(m);if(s===null)return null;var n=Date.now(),D=dur(m)*60e3;if(n<s||n>=s+D)return null;return{min:Math.floor((n-s)/60e3)+1,p:(n-s)/D}}
+function ed(){var n=parseInt((S().settings||{}).edition,10);return n>0?n:43}
+function finished(m){return hasScore(m)&&!liveInfo(m)}
+function liveInfo(m){var s=matchStart(m);if(s===null)return null;var n=Date.now(),D=dur(m)*60e3;if(n<s||n>=s+D)return null;return{min:Math.floor((n-s)/60e3)+1,p:(n-s)/D}}
 function liveMatches(){return sortedMatches().filter(function(m){return liveInfo(m)})}
 function nextMatch(){return sortedMatches().find(function(m){return !hasScore(m)&&!liveInfo(m)})}
 function fmtDay(d,o){if(!d)return"";var p=d.split("-");return new Date(+p[0],p[1]-1,+p[2]).toLocaleDateString("de-DE",o||{weekday:"long",day:"numeric",month:"long"})}
@@ -101,8 +103,8 @@ function standings(g){
   tally(rows,ms);
   return (_gs[g]=rank(Object.keys(rows).map(function(k){return rows[k]}),ms));
 }
-function groupDone(g){var ms=S().matches.filter(function(m){return m.group===g});return ms.length>0&&ms.every(hasScore)}
-function winnerSide(m){if(!hasScore(m))return null;var hs=+m.hs,as=+m.as;if(hs>as)return"home";if(as>hs)return"away";
+function groupDone(g){var ms=S().matches.filter(function(m){return m.group===g});return ms.length>0&&ms.every(finished)}
+function winnerSide(m){if(!finished(m))return null;var hs=+m.hs,as=+m.as;if(hs>as)return"home";if(as>hs)return"away";
   if(isKO(m)&&num(m.hp)&&num(m.ap)&&+m.hp!==+m.ap)return +m.hp>+m.ap?"home":"away";return null}
 var _rs={};
 function resolve(m,side){
@@ -165,7 +167,7 @@ var COURT='<svg class="court" viewBox="0 0 400 300" preserveAspectRatio="xMidYMi
 function hero(){
   var st=S().settings,meta=[st.date,st.place].filter(Boolean).map(esc).join(" · ");
   return '<header class="hero">'+COURT+'<div class="wrap"><div class="hero-top"><img src="'+curLogo()+'" alt="Logo TSC Eintracht Dortmund"><div class="club">TSC Eintracht Dortmund<br>Hockey</div><button class="info-btn" data-go="info" aria-label="Infos zum Turnier">i</button></div>'+
-   '<div class="hero-num"><span class="n" aria-hidden="true">43</span><span class="lbl">Auflage<br>des Turniers</span></div><h1>Novemberturnier</h1>'+(meta?'<p class="meta">'+meta+'</p>':'')+
+   '<div class="hero-num"><span class="n" aria-hidden="true">'+ed()+'</span><span class="lbl">Auflage<br>des Turniers</span></div><h1>Novemberturnier</h1>'+(meta?'<p class="meta">'+meta+'</p>':'')+
    '<div class="halls"><span>Damen · Halle Ost</span><span>Herren · Halle West</span></div></div></header>';
 }
 function tile(k,t,body,cls){return '<button class="tile '+cls+'" data-go="'+k+'"><div class="t-head"><h2>'+t+'</h2>'+ICON[k]+'</div><div class="t-body">'+body+'</div></button>'}
@@ -173,7 +175,7 @@ function vHome(){
   var nm=nextMatch(),lv=liveMatches(),items=[].concat.apply([],S().menu.map(function(c){return c.items||[]}));
   var wd=function(m){return multiDay()?fmtDay(mday(m),{weekday:"long"})+" ":""};
   var lbl=function(m){return m.cat+(m.group?" "+shortG(m.group):" · "+m.round)};
-  var plan=lv.length?'<span class="lvtag"><i></i>Live'+(lv.length>1?", "+lv.length+" Spiele":"")+'</span><span>'+liveInfo(lv[0]).min+'. Minute, '+esc(hall(lv[0]))+', '+esc(lbl(lv[0]))+'</span><strong>'+esc(sideName(lv[0],"home"))+'<span class="vs">gegen</span>'+esc(sideName(lv[0],"away"))+'</strong>'
+  var plan=lv.length?'<span class="lvtag"><i></i>Live'+(lv.length>1?", "+lv.length+" Spiele":"")+'</span><span>'+liveInfo(lv[0]).min+'. Minute, '+esc(hall(lv[0]))+', '+esc(lbl(lv[0]))+'</span><strong>'+esc(sideName(lv[0],"home"))+'<span class="vs">'+(hasScore(lv[0])?(+lv[0].hs)+':'+(+lv[0].as):'gegen')+'</span>'+esc(sideName(lv[0],"away"))+'</strong>'
     :nm?'<span>Als Nächstes '+esc(wd(nm))+'um '+esc(nm.time)+' Uhr, '+esc(hall(nm))+', '+esc(lbl(nm))+'</span><strong>'+esc(sideName(nm,"home"))+'<span class="vs">gegen</span>'+esc(sideName(nm,"away"))+'</strong>'
     :(S().matches.length?'<strong>Alle Spiele sind gespielt</strong>':'<strong>Der Spielplan folgt</strong>');
   var champs=CATS.map(function(c){var f=finalPlaces(c)[0];return f&&f.t?c+": "+f.t.name:""}).filter(Boolean);
@@ -185,18 +187,18 @@ function vHome(){
   var tm=S().teams,nd=tm.filter(function(t){return /^Damen/.test(t.group)}).length;
   var teams='<div class="lgs">'+tm.slice(0,12).map(function(t){return logo(t)}).join("")+'</div><strong>'+tm.length+' Teams</strong><span>'+nd+' Damenteams, '+(tm.length-nd)+' Herrenteams</span>';
   return hero()+'<main><div class="wrap"><div class="tiles">'+tile("plan","Spielplan",plan,"big")+tile("table","Tabelle",tbl,"")+tile("teams","Teams",teams,"")+
-   '</div><p class="foot">43. Novemberturnier des TSC Eintracht Dortmund<br><button data-go="admin">Orga-Bereich</button><br><button data-go="shifts">Schichtpläne</button></p></div></main>'+nav();
+   '</div><p class="foot">'+ed()+'. Novemberturnier des TSC Eintracht Dortmund<br><button data-go="admin">Orga-Bereich</button><br><button data-go="shifts">Schichtpläne</button></p></div></main>'+nav();
 }
 function midLabel(m){return '<b>'+esc(m.cat)+' · '+esc(m.id)+'</b>'+esc(m.group?shortG(m.group):m.round)}
 function gameHTML(m,nx){
   var sc=hasScore(m),hs=+m.hs,as=+m.as,t1=resolve(m,"home"),t2=resolve(m,"away"),lv=liveInfo(m),w=winnerSide(m);
-  var so=sc&&hs===as&&isKO(m)&&num(m.hp)&&num(m.ap)?'<div class="so">n. 7m '+(+m.hp)+':'+(+m.ap)+'</div>':'';
+  var fin=sc&&!lv;var so=sc&&hs===as&&isKO(m)&&num(m.hp)&&num(m.ap)?'<div class="so">n. 7m '+(+m.hp)+':'+(+m.ap)+'</div>':'';
   var mid='<div class="mid">'+(lv?'<span class="pill lv"><i></i>LIVE</span>':nx?'<span class="pill">Als Nächstes</span>':'')+'<div class="grp">'+midLabel(m)+'</div>'+
-    (lv?'<div class="min">'+lv.min+'. Min.</div><div class="prog" aria-hidden="true"><b style="--p:'+(lv.p*100).toFixed(1)+'%"></b></div><div class="small">seit '+esc(m.time)+' Uhr, '+esc(hall(m))+'</div>'
+    (lv?(sc?'<div class="score">'+hs+':'+as+'</div>'+so:'')+'<div class="min">'+lv.min+'. Min.</div><div class="prog" aria-hidden="true"><b style="--p:'+(lv.p*100).toFixed(1)+'%"></b></div><div class="small">seit '+esc(m.time)+' Uhr, '+esc(hall(m))+'</div>'
     :sc?'<div class="score">'+hs+':'+as+'</div>'+so+'<div class="small">'+esc(m.time)+' Uhr, '+esc(hall(m))+'</div>'
        :'<div class="vs">vs.</div><div class="clock">'+esc(m.time)+'</div><div class="small">'+esc(hall(m))+'</div>')+'</div>';
   function side(t,s,won){return '<div class="side">'+logo(t,56)+'<span class="nm'+(t?'':' ph-t')+(won?' won':'')+'">'+esc(s)+'</span></div>'}
-  return '<div class="game'+(lv?' live':nx?' next':'')+'">'+side(t1,sideName(m,"home"),t1&&w==="home")+mid+side(t2,sideName(m,"away"),t2&&w==="away")+'</div>';
+  return '<div class="game'+(lv?' live':nx?' next':'')+'">'+side(t1,sideName(m,"home"),fin&&t1&&w==="home")+mid+side(t2,sideName(m,"away"),fin&&t2&&w==="away")+'</div>';
 }
 function vPlan(){
   var opts=["Alle","Damen","Herren","Halle Ost","Halle West","Finalrunde"];
@@ -309,19 +311,19 @@ function aPlan(D){
   var fs=["Offen","Alle","Samstag","Sonntag","Damen","Herren"];
   var chips='<div class="chips" role="group" aria-label="Spiele filtern">'+fs.map(function(f){return '<button class="chip" data-afilter="'+f+'" aria-pressed="'+(f===afilter)+'">'+f+'</button>'}).join("")+'</div>';
   var ms=sortedMatches().filter(function(m){
-    if(afilter==="Offen")return !hasScore(m);if(afilter==="Samstag")return mday(m)===D.settings.day;if(afilter==="Sonntag")return mday(m)!==D.settings.day;
+    if(afilter==="Offen")return !finished(m);if(afilter==="Samstag")return mday(m)===D.settings.day;if(afilter==="Sonntag")return mday(m)!==D.settings.day;
     if(afilter==="Damen"||afilter==="Herren")return m.cat===afilter;return true});
   function teamSel(m,side){var auto=m[side==="home"?"hsrc":"asrc"],cur=m[side]||"",r=resolve(m,side);
     var o=(auto?opt("","Automatisch: "+(r?r.name:m[side==="home"?"hn":"an"]),cur):"")+D.teams.filter(function(t){return t.group.indexOf(m.cat)===0}).map(function(t){return opt(t.id,t.name,cur)}).join("");
     return '<select class="in" id="'+side+'-'+m.id+'" data-k="m.'+side+'" data-id="'+m.id+'" aria-label="'+(side==="home"?"Team 1":"Team 2")+'">'+o+'</select>'}
-  return '<p class="hint">Tore eintragen und beim Spiel auf „Speichern“ tippen – das Ergebnis ist sofort online. „Leeren“ entfernt ein Ergebnis wieder. Leere Felder heißen: noch nicht gespielt. Halbfinals und Platzierungsspiele füllen sich automatisch, sobald die Gruppen fertig sind.</p>'+chips+
-   (ms.length?'<div class="rows">'+ms.map(function(m){var sc=hasScore(m),ko=isKO(m);
-    return '<div class="card'+(sc?" done":"")+'"><div class="mhead"><span class="code">'+esc(m.id)+'</span><b>'+esc(fmtDay(mday(m),{weekday:"short"}))+' '+esc(m.time)+'</b><span>'+esc(hall(m))+'</span><span>'+esc(m.cat)+' · '+esc(m.group?shortG(m.group):m.round)+'</span></div>'+
+  return '<p class="hint">Tore eintragen und beim Spiel auf „Speichern“ tippen – das Ergebnis ist sofort online. Den Zwischenstand kannst du auch während des Spiels speichern und laufend aktualisieren: Die Live-Anzeige mit Spielminute bleibt, bis das Spiel laut Uhrzeit vorbei ist. „Leeren“ entfernt ein Ergebnis wieder. Leere Felder heißen: noch nicht gespielt. Halbfinals und Platzierungsspiele füllen sich automatisch, sobald die Gruppen fertig sind.</p>'+chips+
+   (ms.length?'<div class="rows">'+ms.map(function(m){var sc=hasScore(m),ko=isKO(m),li=liveInfo(m);
+    return '<div class="card'+(sc&&!li?" done":"")+(li?" rlive":"")+'"><div class="mhead"><span class="code">'+esc(m.id)+'</span>'+(li?'<span class="pill lv"><i></i>LIVE · '+li.min+'. Min.</span>':'')+'<b>'+esc(fmtDay(mday(m),{weekday:"short"}))+' '+esc(m.time)+'</b><span>'+esc(hall(m))+'</span><span>'+esc(m.cat)+' · '+esc(m.group?shortG(m.group):m.round)+'</span></div>'+
      '<div class="mrow">'+(m.hsrc?teamSel(m,"home"):'<span class="tn">'+esc(sideName(m,"home"))+'</span>')+'<input class="in score-in" id="hs-'+m.id+'" inputmode="numeric" data-k="m.hs" data-id="'+m.id+'" value="'+(num(m.hs)?m.hs:"")+'" aria-label="Tore Team 1">'+
      '<span class="vsl">gegen</span>'+(m.asrc?teamSel(m,"away"):'<span class="tn">'+esc(sideName(m,"away"))+'</span>')+'<input class="in score-in" id="as-'+m.id+'" inputmode="numeric" data-k="m.as" data-id="'+m.id+'" value="'+(num(m.as)?m.as:"")+'" aria-label="Tore Team 2"></div>'+
      (ko?'<div class="so-row"><span>Bei Unentschieden: 7-m-Schießen</span><input class="in score-in" id="hp-'+m.id+'" inputmode="numeric" data-k="m.hp" data-id="'+m.id+'" value="'+(num(m.hp)?m.hp:"")+'" aria-label="7 m Team 1"><input class="in score-in" id="ap-'+m.id+'" inputmode="numeric" data-k="m.ap" data-id="'+m.id+'" value="'+(num(m.ap)?m.ap:"")+'" aria-label="7 m Team 2"></div>':'')+
      '<details class="more"><summary>Zeit und Halle ändern</summary><div class="mgrid"><input class="in" type="date" id="d-'+m.id+'" data-k="m.day" data-id="'+m.id+'" value="'+esc(mday(m))+'" aria-label="Tag"><input class="in" type="time" id="t-'+m.id+'" data-k="m.time" data-id="'+m.id+'" value="'+esc(m.time)+'" aria-label="Uhrzeit"><select class="in" id="p-'+m.id+'" data-k="m.pitch" data-id="'+m.id+'" aria-label="Halle">'+opt("Ost","Halle Ost",m.pitch)+opt("West","Halle West",m.pitch)+'</select></div></details>'+saveRow(m)+'</div>'}).join("")+'</div>'
-    :'<div class="empty">'+(afilter==="Offen"?"Alle Spiele haben ein Ergebnis.":"Keine Spiele in dieser Auswahl.")+'</div>');
+    :'<div class="empty">'+(afilter==="Offen"?"Alle Spiele sind beendet.":"Keine Spiele in dieser Auswahl.")+'</div>');
 }
 function mvBtns(upAct,downAct,id,first,last,extra){return (first?'':'<button class="btn icon sm" data-act="'+upAct+'" data-id="'+id+'"'+(extra||'')+' aria-label="Nach oben">↑</button>')+(last?'':'<button class="btn icon sm" data-act="'+downAct+'" data-id="'+id+'"'+(extra||'')+' aria-label="Nach unten">↓</button>')}
 function aFood(D){
@@ -367,11 +369,13 @@ function aGeneral(D){
    '<div class="mgrid"><div><label class="f" for="sdd" style="margin-top:0">Damen (Min.)</label><input class="in" id="sdd" type="number" min="1" data-k="tp.durD" value="'+esc(D.settings.durD||25)+'"></div>'+
    '<div><label class="f" for="sdh" style="margin-top:0">Herren (Min.)</label><input class="in" id="sdh" type="number" min="1" data-k="tp.durH" value="'+esc(D.settings.durH||20)+'"></div>'+
    '<div><label class="f" for="spa" style="margin-top:0">Wechsel (Min.)</label><input class="in" id="spa" type="number" min="0" data-k="tp.pause" value="'+esc(D.settings.pause==null?5:D.settings.pause)+'"></div></div>'+plan+'<p class="hint" style="margin-top:14px">Spielplan aus der Vorlage im Repository übernehmen (Paarungen, Runden, Hallen, Zeiten). Teamnamen, Logos und Ergebnisse unveränderter Spiele bleiben erhalten.</p>'+armBtn("loadPlan","","Spielplan aus Vorlage übernehmen","Wirklich übernehmen?","ghost sm")+'</div>'+
-   '<div class="card"><h2 class="sec" style="margin-top:0">Live-Anzeige</h2><p class="hint">Mit Spielzeit und echter Uhrzeit erkennt der Spielplan, welche Spiele gerade laufen. Sobald ein Ergebnis eingetragen ist, gilt ein Spiel als beendet.</p>'+
+   '<div class="card"><h2 class="sec" style="margin-top:0">Live-Anzeige</h2><p class="hint">Mit Spielzeit und echter Uhrzeit erkennt der Spielplan, welche Spiele gerade laufen. Ein Spiel bleibt live, bis seine Spielzeit laut Uhrzeit vorbei ist, auch wenn schon ein Zwischenstand gespeichert ist.</p>'+
    '<label class="f" for="sday" style="margin-top:0">Erster Turniertag</label><input class="in" id="sday" type="date" data-k="set.day" value="'+esc(D.settings.day||"")+'"></div>'+
+   '<div class="card"><h2 class="sec" style="margin-top:0">Auflage</h2><label class="f" for="sed" style="margin-top:0">Auflage (Nummer)</label><input class="in" id="sed" type="number" min="1" inputmode="numeric" data-k="set.edition" value="'+esc(D.settings.edition||43)+'"><p class="hint" style="margin:6px 0 0">Auf der Startseite steht dann: <b id="edprev">'+esc((parseInt(D.settings.edition,10)||43)+". Novemberturnier")+'</b></p></div>'+
    '<div class="card"><label class="f" for="sd" style="margin-top:0">Datum als Text</label><input class="in" id="sd" data-k="set.date" value="'+esc(D.settings.date)+'">'+
    '<label class="f" for="sp">Ort</label><input class="in" id="sp" data-k="set.place" value="'+esc(D.settings.place)+'"></div>'+
    '<div class="card"><h2 class="sec" style="margin-top:0">Vereinslogo</h2><div class="upl"><span class="lg" style="--s:56px"><img src="'+curLogo()+'" alt=""></span><label class="btn ghost sm">Logo ersetzen<input type="file" accept="image/png,image/jpeg" data-clublogo="1"></label></div></div>'+
+   '<div class="card dz"><h2 class="sec" style="margin-top:0">Neues Turnierjahr vorbereiten</h2><p class="hint">Löscht alle Ergebnisse (auch 7-m-Schießen) und setzt Halbfinals, Platzierungs- und Finalspiele wieder auf „Automatisch“. Teams, Logos, Spielplan, Zeiten, Infos und Schichtpläne bleiben. Die Änderung ist sofort online. Lade vorher am besten eine Sicherung herunter.</p><div class="rows"><button class="btn ghost sm" data-act="backup">Sicherung herunterladen</button><button class="btn sm" data-act="resetResults">Alle Ergebnisse löschen</button></div><p class="hint" style="margin:10px 0 0">Danach unter „Allgemein“ Auflage, Turniertag und Datum anpassen und veröffentlichen.</p></div>'+
    '<p class="hint">Veröffentlichen speichert alles in Firebase. Alle geöffneten Ansichten aktualisieren sich danach von selbst.</p>';
 }
 /* Spielplan aus default-state.json übernehmen, Ergebnisse unveränderter Spiele behalten */
@@ -394,7 +398,7 @@ function vAdmin(){
 /* ---------- Darstellung ---------- */
 function render(keep){
   if(!STATE){app.innerHTML='<main><div class="wrap"><p class="empty" style="margin-top:30vh">Turnierdaten werden geladen …</p></div></main>';return}
-  var y=window.scrollY;clearCache();
+  var y=window.scrollY;clearCache();document.title=ed()+". Novemberturnier";
   if(route==="admin"){if(!authed()){app.innerHTML=vLogin();bindLogin();return}if(!DRAFT)loadDraft();app.innerHTML=vAdmin()}
   else{DRAFT=null;app.innerHTML=({home:vHome,plan:vPlan,teams:vTeams,table:vTable,info:vInfo,shifts:vShifts}[route]||vHome)()}
   if(keep)window.scrollTo(0,y);
@@ -430,6 +434,7 @@ app.addEventListener("input",function(e){
     if(g==="price"){var p=parseNum(v);it.price=p===null?0:p}else it[g]=v}
   else if(k==="cat.name")findC(id).name=v;
   else if(k==="info.title"||k==="info.text")DRAFT.info.find(function(x){return x.id===id})[k.slice(5)]=v;
+  else if(k==="set.edition"){var en=parseInt(v,10);DRAFT.settings.edition=en>0?en:null;var pv=document.getElementById("edprev");if(pv)pv.textContent=(en>0?en:43)+". Novemberturnier"}
   else if(k.indexOf("set.")===0)DRAFT.settings[k.slice(4)]=v;
   else if(k==="shift"){if(String(v).trim())DRAFT.shifts[id]=v;else delete DRAFT.shifts[id];var bd=document.getElementById("shbadge");if(bd)bd.textContent=shiftCount(DRAFT)}
   else if(k==="sa.name")DRAFT.shiftAreas.find(function(a){return a.id===id}).name=v;
@@ -515,6 +520,23 @@ async function saveMatch(id,clear){
   }catch(err){var c=err&&err.code;
     toast(c==="permission-denied"?"Keine Schreibrechte. Ist deine UID in den Firestore-Regeln eingetragen?":c==="missing"?"Dieses Spiel gibt es online nicht. Bitte zuerst den Spielplan veröffentlichen.":"Speichern fehlgeschlagen. Bitte Internetverbindung prüfen.")}
   delete SAVING[id];markDirty();render(true)}
+function askSure(what){var v=prompt(what+"\n\nZum Bestätigen bitte LÖSCHEN eintippen:");return v!==null&&v.trim().toUpperCase()==="LÖSCHEN"}
+function backup(){var s=STATE||DRAFT;if(!s)return;var b=new Blob([JSON.stringify(s,null,1)],{type:"application/json"}),a=document.createElement("a");
+  a.href=URL.createObjectURL(b);a.download=ed()+"-novemberturnier-sicherung-"+new Date().toISOString().slice(0,10)+".json";document.body.appendChild(a);a.click();
+  setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},1000);toast("Sicherung heruntergeladen")}
+function clearResults(st){st.matches.forEach(function(m){["hs","as","hp","ap"].forEach(function(f){m[f]=null});if(m.hsrc)m.home="";if(m.asrc)m.away=""})}
+async function resetResults(){
+  if(!FB){toast("Firebase ist noch nicht eingerichtet (firebase-config.js).");return}
+  if(!askSure("Alle Ergebnisse dieses Turniers löschen? Das kann nicht rückgängig gemacht werden (außer über eine Sicherung)."))return;
+  try{
+    var saved=await runTransaction(FB.db,async function(tx){
+      var snap=await tx.get(FB.ref);
+      var cur=snap.exists()?norm(JSON.parse(snap.data().json)):clone(STATE);
+      clearResults(cur);cur.updated=new Date().toISOString();
+      tx.set(FB.ref,{json:JSON.stringify(cur),updated:cur.updated});return cur});
+    STATE=norm(saved);if(DRAFT){clearResults(DRAFT)}saveDraft();clearCache();toast("Alle Ergebnisse gelöscht");render(true);
+  }catch(err){toast(err&&err.code==="permission-denied"?"Keine Schreibrechte. Ist deine UID in den Firestore-Regeln eingetragen?":"Löschen fehlgeschlagen. Bitte Internetverbindung prüfen.")}
+}
 /* ---------- Veröffentlichen (Firestore) ---------- */
 async function publish(){
   if(publishing)return;
@@ -553,6 +575,8 @@ app.addEventListener("click",function(e){
   if(a==="publish"){publish();return}
   if(a==="saveM"){saveMatch(id,false);return}
   if(a==="clearM"){if(!arm("clearM:"+id))return;saveMatch(id,true);return}
+  if(a==="backup"){backup();return}
+  if(a==="resetResults"){resetResults();return}
   if(a==="loadPlan"){if(!arm("loadPlan:"))return;loadPlan();return}
   if(a==="reset"){if(!arm("reset:"))return;DRAFT=clone(STATE);saveDraft();render(true);toast("Änderungen verworfen");return}
   if(a==="shLock"){lsSet("nt-shifts",null);render(false);return}
