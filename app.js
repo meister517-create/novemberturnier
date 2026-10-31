@@ -254,14 +254,20 @@ function vInfo(){
 
 /* ---------- Schichtpläne ---------- */
 function hh(h){return String(h).padStart(2,"0")+":00"}
+function hm(t){t=((t%1440)+1440)%1440;return String(Math.floor(t/60)).padStart(2,"0")+":"+String(t%60).padStart(2,"0")}
+/* Minuten-Versatz der Schichten: Schichten beginnen mit dem ersten Anpfiff des Tages (z. B. 09:30) */
+function shOff(day){var st=S(),a=null;st.matches.forEach(function(m){if(mday(m)!==day)return;var t=tmin(m.time);if(t!==null&&(a===null||t<a))a=t});return a===null?0:a%60}
+function shStart(day,h){return h*60+shOff(day)}
+function shLbl(day,h){var t=shStart(day,h);return hm(t)+' – '+hm(t+60)}
 function isoToday(){var n=new Date();return n.getFullYear()+"-"+String(n.getMonth()+1).padStart(2,"0")+"-"+String(n.getDate()).padStart(2,"0")}
 function shiftDays(){var d={};S().matches.forEach(function(m){if(mday(m))d[mday(m)]=1});return Object.keys(d).sort()}
 function curShDay(){var ds=shiftDays();if(ds.indexOf(shDay)<0)shDay=ds.indexOf(isoToday())>=0?isoToday():(ds[0]||"");return shDay}
-/* volle Stunden vom ersten Anpfiff bis zum letzten Abpfiff des Tages, beide Hallen */
+/* Stundenblöcke ab dem ersten Anpfiff bis zum letzten Abpfiff des Tages, beide Hallen.
+   Schlüssel bleibt die Stunde des Blockbeginns (09:30–10:30 = Stunde 9), damit eingetragene Namen erhalten bleiben. */
 function shiftSlots(day){
   var st=S(),a=null,b=null;st.matches.forEach(function(m){if(mday(m)!==day)return;var t=tmin(m.time);if(t===null)return;var e=t+durOf(st,m);
     if(a===null||t<a)a=t;if(b===null||e>b)b=e});
-  if(a===null)return [];var out=[];for(var h=Math.floor(a/60);h<Math.ceil(b/60);h++)out.push(h);return out}
+  if(a===null)return [];var out=[];for(var t=a;t<b;t+=60)out.push(Math.floor(t/60));return out}
 function dayChips(cur){return '<div class="chips" role="group" aria-label="Tag">'+shiftDays().map(function(d){return '<button class="chip" data-shday="'+esc(d)+'" aria-pressed="'+(d===cur)+'">'+esc(fmtDay(d,{weekday:"long"}))+'</button>'}).join("")+'</div>'}
 function shiftKey(day,h,area,i){return day+"-"+String(h).padStart(2,"0")+"|"+area+"|"+i}
 function areaKey(day,h,area){return day+"-"+String(h).padStart(2,"0")+"|"+area}
@@ -272,7 +278,7 @@ function shiftResults(q){
   shiftDays().forEach(function(day){shiftSlots(day).forEach(function(h){st.shiftAreas.forEach(function(a){
     if(areaOff(st,day,h,a.id))return;var ns=shiftNames(st,day,h,a),me=ns.filter(function(n){return n.toLowerCase().indexOf(q)>=0});
     if(!me.length)return;var mates=ns.filter(function(n){return me.indexOf(n)<0});
-    out.push('<div class="shres"><span class="shrt">'+esc(fmtDay(day,{weekday:"short"}))+' '+hh(h)+' – '+hh(h+1)+'</span><b>'+esc(a.name)+'</b><span class="shrm">'+esc(me.join(", "))+(mates.length?' · mit '+esc(mates.join(", ")):'')+'</span></div>')})})});
+    out.push('<div class="shres"><span class="shrt">'+esc(fmtDay(day,{weekday:"short"}))+' '+shLbl(day,h)+'</span><b>'+esc(a.name)+'</b><span class="shrm">'+esc(me.join(", "))+(mates.length?' · mit '+esc(mates.join(", ")):'')+'</span></div>')})})});
   return out.length?'<p class="hint" style="margin:0 0 8px"><b>'+out.length+' Schicht'+(out.length===1?'':'en')+'</b> für „'+esc(q)+'“ an allen Tagen</p><div class="shrlist">'+out.join("")+'</div>':'<p class="hint">Keine Schicht für „'+esc(q)+'“ gefunden.</p>'}
 function shiftsOk(){return lsGet("nt-shifts")===STATE.shiftPw}
 function vShifts(){
@@ -281,10 +287,10 @@ function vShifts(){
     '<button class="btn blue" type="submit" style="width:100%;margin-top:14px">Öffnen</button><div class="err" id="sherr" role="alert"></div></form></div></main>'+nav();
   var st=S(),day=curShDay(),slots=shiftSlots(day),now=new Date(),isToday=day===isoToday();
   var cards=slots.map(function(h){
-    var isNow=isToday&&now.getHours()===h;
+    var nm=now.getHours()*60+now.getMinutes(),s0=shStart(day,h),isNow=isToday&&nm>=s0&&nm<s0+60;
     var rows=st.shiftAreas.filter(function(a){return !areaOff(st,day,h,a.id)}).map(function(a){var ns=shiftNames(st,day,h,a);
       return '<div class="shrow"><span class="sha">'+esc(a.name)+'</span><span class="shn2'+(ns.length<a.n?' open':'')+'">'+(ns.length?ns.map(esc).join(", "):'')+(ns.length<a.n?(ns.length?' · ':'')+(a.n-ns.length)+' offen':'')+'</span></div>'}).join("");
-    return '<section class="shc'+(isNow?' now':'')+'"><h3>'+hh(h)+' – '+hh(h+1)+' Uhr'+(isNow?'<span class="pill lv"><i></i>Jetzt</span>':'')+'</h3>'+(rows||'<p class="hint" style="margin:4px 0 0">Keine Schicht in dieser Stunde.</p>')+'</section>'}).join("");
+    return '<section class="shc'+(isNow?' now':'')+'"><h3>'+shLbl(day,h)+' Uhr'+(isNow?'<span class="pill lv"><i></i>Jetzt</span>':'')+'</h3>'+(rows||'<p class="hint" style="margin:4px 0 0">Keine Schicht in dieser Stunde.</p>')+'</section>'}).join("");
   return pageHead("Schichtpläne",true)+'<main><div class="wrap">'+
     '<label class="f" for="shq" style="margin-top:0">Meine Schichten</label><input class="in" id="shq" type="search" value="'+esc(shQ)+'" placeholder="Deinen Namen eingeben …" aria-label="Eigenen Namen suchen" style="margin:0 0 12px">'+
     '<div id="shres">'+shiftResults(shQ)+'</div>'+
@@ -347,18 +353,18 @@ function shiftCount(D){var day=curShDay(),tot=0,fil=0;shiftSlots(day).forEach(fu
 function aShifts(D){
   var day=curShDay(),slots=shiftSlots(day),sh=D.shifts;
   var cards=slots.map(function(h){
-    return '<div class="card"><h2 class="sec" style="margin:0 0 8px">'+hh(h)+' – '+hh(h+1)+' Uhr</h2>'+D.shiftAreas.map(function(a){
+    return '<div class="card"><h2 class="sec" style="margin:0 0 8px">'+shLbl(day,h)+' Uhr</h2>'+D.shiftAreas.map(function(a){
       var ak=areaKey(day,h,a.id);
       if(D.shiftsOff[ak])return '<div class="row shoff" style="margin-top:8px"><span class="grow"><b>'+esc(a.name)+'</b> – keine Schicht</span><button class="btn ghost sm" data-act="shOn" data-id="'+esc(ak)+'">Wiederherstellen</button></div>';
       var ins='',has=false;for(var i=0;i<a.n;i++){var k=shiftKey(day,h,a.id,i),v=sh[k]||"";if(v.trim())has=true;
-        ins+='<input class="in grow" id="sh-'+esc(k)+'" data-k="shift" data-id="'+esc(k)+'" value="'+esc(v)+'" placeholder="Name" aria-label="'+esc(a.name)+' '+hh(h)+' Person '+(i+1)+'">'}
-      return '<div style="margin-top:8px"><div class="row" style="justify-content:space-between;margin-bottom:4px"><label class="f" style="margin:0">'+esc(a.name)+'</label>'+(has?armBtn("shOff",ak,"✕","Namen löschen?"):'<button class="btn icon sm" data-act="shOff" data-id="'+esc(ak)+'" aria-label="Schicht '+esc(a.name)+' '+hh(h)+' entfernen" title="Schicht entfernen">✕</button>')+'</div><div class="row">'+ins+'</div></div>'}).join("")+'</div>'}).join("");
+        ins+='<input class="in grow" id="sh-'+esc(k)+'" data-k="shift" data-id="'+esc(k)+'" value="'+esc(v)+'" placeholder="Name" aria-label="'+esc(a.name)+' '+hm(shStart(day,h))+' Person '+(i+1)+'">'}
+      return '<div style="margin-top:8px"><div class="row" style="justify-content:space-between;margin-bottom:4px"><label class="f" style="margin:0">'+esc(a.name)+'</label>'+(has?armBtn("shOff",ak,"✕","Namen löschen?"):'<button class="btn icon sm" data-act="shOff" data-id="'+esc(ak)+'" aria-label="Schicht '+esc(a.name)+' '+hm(shStart(day,h))+' entfernen" title="Schicht entfernen">✕</button>')+'</div><div class="row">'+ins+'</div></div>'}).join("")+'</div>'}).join("");
   var areas='<details class="card more"><summary><b>Bereiche und Passwort</b></summary><p class="hint" style="margin-top:10px">Bereiche gelten für alle Stunden beider Tage. Die Zahl legt fest, wie viele Personen je Stunde eingeteilt werden.</p>'+
     D.shiftAreas.map(function(a,i){return '<div class="row" style="margin-top:8px"><input class="in grow" id="sa-'+a.id+'" data-k="sa.name" data-id="'+a.id+'" value="'+esc(a.name)+'" aria-label="Name des Bereichs"><select class="in" style="width:auto" id="san-'+a.id+'" data-k="sa.n" data-id="'+a.id+'" aria-label="Personen je Stunde">'+[1,2,3,4].map(function(n){return opt(String(n),n+(n===1?" Person":" Personen"),String(a.n))}).join("")+'</select>'+
       mvBtns("saUp","saDown",a.id,i===0,i===D.shiftAreas.length-1)+armBtn("saDel",a.id,"✕","Löschen?")+'</div>'}).join("")+
     '<button class="btn ghost sm" data-act="saAdd" style="margin-top:10px">Bereich hinzufügen</button>'+
     '<label class="f" for="shpwa">Passwort für die Schichtpläne</label><input class="in" id="shpwa" data-k="shpw" value="'+esc(D.shiftPw)+'" autocomplete="off"><p class="hint" style="margin-top:4px">Nach einer Änderung müssen alle Helfer das neue Passwort eingeben.</p></details>';
-  return '<p class="hint">Schichten je volle Stunde, passend zum Spielplan des Tages (vom ersten Anpfiff bis zum letzten Abpfiff in beiden Hallen). Ist ein Bereich in einer Stunde nicht besetzt, die Schicht mit ✕ entfernen. Mit „Veröffentlichen“ speichern. Für Helfer unten auf der Startseite unter „Schichtpläne“, Passwort '+esc(D.shiftPw)+'.</p>'+areas+
+  return '<p class="hint">Schichten im Stundentakt ab dem ersten Anpfiff des Tages bis zum letzten Abpfiff in beiden Hallen (ändert sich die Anfangszeit im Spielplan, ziehen die Schichten automatisch mit). Ist ein Bereich in einer Stunde nicht besetzt, die Schicht mit ✕ entfernen. Mit „Veröffentlichen“ speichern. Für Helfer unten auf der Startseite unter „Schichtpläne“, Passwort '+esc(D.shiftPw)+'.</p>'+areas+
     dayChips(day)+'<p class="hint"><span class="badge" id="shbadge">'+shiftCount(D)+'</span></p>'+(slots.length?'<div class="rows">'+cards+'</div>':'<div class="empty">Für diesen Tag gibt es noch keine Spiele.</div>')}
 function aGeneral(D){
   var days={};slotGroups(D).forEach(function(g){(days[g.day]=days[g.day]||[]).push(g)});
